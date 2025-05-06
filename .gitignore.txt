@@ -1,7 +1,0 @@
-# Archivos y carpetas a ignorar
-node_modules/
-dist/
-.DS_Store
-*.log
-.env
-.electron-builder
