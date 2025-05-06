@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Cajas para Recién Nacidos</title>
+    <link rel="stylesheet" href="styles/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Registro de Cajas para Recién Nacidos</h1>
+        
+        <form id="cajaForm">
+            <!-- Sección de Datos del Cliente -->
+            <fieldset>
+                <legend>Datos del Cliente</legend>
+                <div class="form-group">
+                    <label for="nombreCliente">Nombre y Apellidos:</label>
+                    <input type="text" id="nombreCliente" name="nombreCliente" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="emailCliente">Email:</label>
+                    <input type="email" id="emailCliente" name="emailCliente">
+                </div>
+                
+                <div class="form-group">
+                    <label for="telefonoCliente">Teléfono:</label>
+                    <input type="tel" id="telefonoCliente" name="telefonoCliente">
+                </div>
+                
+                <div class="form-group">
+                    <label for="direccionCliente">Dirección:</label>
+                    <input type="text" id="direccionCliente" name="direccionCliente">
+                </div>
+                
+                <div class="form-group">
+                    <label for="codigoPostalCliente">Código Postal:</label>
+                    <input type="text" id="codigoPostalCliente" name="codigoPostalCliente">
+                </div>
+                
+                <div class="form-group">
+                    <label for="ciudadCliente">Ciudad:</label>
+                    <input type="text" id="ciudadCliente" name="ciudadCliente">
+                </div>
+            </fieldset>
+            
+            <!-- Sección de Datos del Bebé -->
+            <fieldset>
+                <legend>Datos del Bebé</legend>
+                <div class="form-group">
+                    <label for="nombreBebe">Nombre:</label>
+                    <input type="text" id="nombreBebe" name="nombreBebe" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="apellidosBebe">Apellidos:</label>
+                    <input type="text" id="apellidosBebe" name="apellidosBebe" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="fechaNacimientoBebe">Fecha de Nacimiento:</label>
+                    <input type="date" id="fechaNacimientoBebe" name="fechaNacimientoBebe" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="generoBebe">Género:</label>
+                    <select id="generoBebe" name="generoBebe" required>
+                        <option value="masculino">Masculino</option>
+                        <option value="femenino">Femenino</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="direccionFamiliar">Dirección Familiar:</label>
+                    <input type="text" id="direccionFamiliar" name="direccionFamiliar">
+                </div>
+                
+                <div class="form-group">
+                    <label for="codigoPostalFamiliar">Código Postal Familiar:</label>
+                    <input type="text" id="codigoPostalFamiliar" name="codigoPostalFamiliar">
+                </div>
+                
+                <div class="form-group">
+                    <label for="ciudadFamiliar">Ciudad Familiar:</label>
+                    <input type="text" id="ciudadFamiliar" name="ciudadFamiliar">
+                </div>
+            </fieldset>
+            
+            <!-- Sección de Datos de la Caja -->
+            <fieldset>
+                <legend>Datos de la Caja</legend>
+                <div class="form-group">
+                    <label for="tipoCaja">Tipo de Caja:</label>
+                    <select id="tipoCaja" name="tipoCaja" required>
+                        <option value="">Seleccione un tipo de caja</option>
+                        <option value="1">Caja Clásica (90€)</option>
+                        <option value="2">Caja Emotiva (120€)</option>
+                        <option value="3">Caja Sol y Luna (145€)</option>
+                        <option value="4">Caja Candilejas (175€)</option>
+                        <option value="5">Caja Mágica (195€)</option>
+                        <option value="6">Caja Fashion (245€)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="numeroCaja">Número de Caja:</label>
+                    <input type="text" id="numeroCaja" name="numeroCaja" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="cantidadCajas">Cantidad de Cajas:</label>
+                    <input type="number" id="cantidadCajas" name="cantidadCajas" min="1" value="1" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="personalizacion">Personalización:</label>
+                    <textarea id="personalizacion" name="personalizacion" rows="3"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="fechaEntrega">Fecha de Entrega:</label>
+                    <input type="date" id="fechaEntrega" name="fechaEntrega">
+                </div>
+            </fieldset>
+            
+            <div class="form-actions">
+                <button type="submit" id="btnGuardar">Guardar Caja</button>
+                <button type="button" id="btnCancelar">Cancelar</button>
+            </div>
+        </form>
+        
+        <div id="mensaje"></div>
+    </div>
+    
+    <script src="js/renderer.js"></script>
+</body>
+</html>
