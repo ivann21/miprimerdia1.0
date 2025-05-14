@@ -8,30 +8,32 @@ document.addEventListener('DOMContentLoaded', () => {
     cargarTiposCaja();
 
     btnCancelar.addEventListener('click', () => {
-        form.reset();
-        mostrarMensaje('Formulario cancelado', 'success');
+        ipcRenderer.send('cerrar-ventana-caja');
     });
 
-    form.addEventListener('submit', async (e) => {
+    form.addEventListener('submit', (e) => {
         e.preventDefault();
         btnGuardar.disabled = true;
         
         try {
             const datos = obtenerDatosFormulario();
-            const resultado = await window.api.guardarCaja(datos);
-            
-            if (resultado.success) {
-                mostrarMensaje('Caja registrada correctamente', 'success');
-                form.reset();
-            } else {
-                mostrarMensaje(`Error: ${resultado.message}`, 'error');
-            }
+            ipcRenderer.send('guardar-caja', datos);
         } catch (error) {
             mostrarMensaje(`Error: ${error.message}`, 'error');
             console.error('Error al guardar la caja:', error);
-        } finally {
             btnGuardar.disabled = false;
         }
+    });
+
+    // Recibir respuesta después de guardar
+    ipcRenderer.on('caja-guardada', (event, resultado) => {
+        if (resultado.success) {
+            mostrarMensaje('Caja registrada correctamente', 'success');
+            form.reset();
+        } else {
+            mostrarMensaje(`Error: ${resultado.message}`, 'error');
+        }
+        btnGuardar.disabled = false;
     });
 
     function obtenerDatosFormulario() {
@@ -73,23 +75,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function cargarTiposCaja() {
         try {
-            const tiposCaja = await window.api.obtenerTiposCaja();
-            const select = document.getElementById('tipoCaja');
-            
-            // Limpiar opciones excepto la primera
-            while (select.options.length > 1) {
-                select.remove(1);
-            }
-            
-            // Agregar opciones desde la base de datos
-            tiposCaja.forEach(tipo => {
-                const option = document.createElement('option');
-                option.value = tipo.id;
-                option.textContent = `${tipo.nombre} (${tipo.precio}€)`;
-                select.appendChild(option);
-            });
+            ipcRenderer.send('obtener-tipos-caja');
         } catch (error) {
             console.error('Error al cargar tipos de caja:', error);
         }
     }
+
+    ipcRenderer.on('tipos-caja-obtenidos', (event, tiposCaja) => {
+        const select = document.getElementById('tipoCaja');
+        
+        // Limpiar opciones excepto la primera
+        while (select.options.length > 1) {
+            select.remove(1);
+        }
+        
+        // Agregar opciones desde la base de datos
+        tiposCaja.forEach(tipo => {
+            const option = document.createElement('option');
+            option.value = tipo.id;
+            option.textContent = `${tipo.nombre} (${tipo.precio}€)`;
+            select.appendChild(option);
+        });
+    });
 });

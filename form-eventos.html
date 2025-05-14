@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Eventos</title>
+    <link rel="stylesheet" href="styles/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Registro de Eventos</h1>
+        
+        <form id="eventoForm">
+            <!-- Sección de Datos del Cliente -->
+            <fieldset>
+                <legend>Datos del Cliente</legend>
+                <div class="form-group">
+                    <label for="nombreCliente">Nombre y Apellidos:</label>
+                    <input type="text" id="nombreCliente" name="nombreCliente" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="emailCliente">Email:</label>
+                    <input type="email" id="emailCliente" name="emailCliente">
+                </div>
+                
+                <div class="form-group">
+                    <label for="telefonoCliente">Teléfono:</label>
+                    <input type="tel" id="telefonoCliente" name="telefonoCliente">
+                </div>
+                
+                <div class="form-group">
+                    <label for="direccionCliente">Dirección:</label>
+                    <input type="text" id="direccionCliente" name="direccionCliente">
+                </div>
+                
+                <div class="form-group">
+                    <label for="codigoPostalCliente">Código Postal:</label>
+                    <input type="text" id="codigoPostalCliente" name="codigoPostalCliente">
+                </div>
+                
+                <div class="form-group">
+                    <label for="ciudadCliente">Ciudad:</label>
+                    <input type="text" id="ciudadCliente" name="ciudadCliente">
+                </div>
+                
+                <div class="form-group">
+                    <label for="fechaNacimientoCliente">Fecha de Nacimiento:</label>
+                    <input type="date" id="fechaNacimientoCliente" name="fechaNacimientoCliente">
+                </div>
+            </fieldset>
+            
+            <!-- Sección de Datos del Evento -->
+            <fieldset>
+                <legend>Datos del Evento</legend>
+                <div class="form-group">
+                    <label for="tipoEvento">Tipo de Evento:</label>
+                    <select id="tipoEvento" name="tipoEvento" required>
+                        <option value="">Seleccione un tipo de evento</option>
+                        <option value="2">Evento corporativo</option>
+                        <option value="3">Evento colegio</option>
+                        <option value="4">Evento familiar</option>
+                        <option value="5">Alquiler</option>
+                        <option value="6">Proveedor</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="fechaEvento">Fecha del Evento:</label>
+                    <input type="date" id="fechaEvento" name="fechaEvento" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="estadoEvento">Estado:</label>
+                    <select id="estadoEvento" name="estadoEvento">
+                        <option value="pendiente">Pendiente</option>
+                        <option value="en_proceso">En Proceso</option>
+                        <option value="completado">Completado</option>
+                        <option value="cancelado">Cancelado</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="notasCliente">Notas del Cliente:</label>
+                    <textarea id="notasCliente" name="notasCliente" rows="3"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="observacionesInternas">Observaciones Internas:</label>
+                    <textarea id="observacionesInternas" name="observacionesInternas" rows="3"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="precioTotal">Precio Total (€):</label>
+                    <input type="number" id="precioTotal" name="precioTotal" min="0" step="0.01" value="0.00">
+                </div>
+            </fieldset>
+            
+            <div class="form-actions">
+                <button type="submit" id="btnGuardar">Guardar Evento</button>
+                <button type="button" id="btnCancelar">Cancelar</button>
+            </div>
+        </form>
+        
+        <div id="mensaje"></div>
+    </div>    
+    <script>
+        const { ipcRenderer } = require('electron');
+    </script>
+    <script src="js/renderer-eventos.js"></script>
+</body>
+</html>

@@ -1,11 +1,68 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Mi App Electron</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Primer Día - Gestión</title>
+    <link rel="stylesheet" href="styles/styles.css">
+    <style>
+        .menu-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 50px;
+        }
+        
+        .menu-button {
+            background-color: #4a7ba7;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 15px 30px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 300px;
+            transition: background-color 0.3s;
+        }
+        
+        .menu-button:hover {
+            background-color: #3a618a;
+        }
+    </style>
 </head>
 <body>
-    <h1>¡Hola desde Electron!</h1>
-    <p>Esta es mi aplicación web empaquetada.</p>
+    <div class="container">
+        <h1>Mi Primer Día - Sistema de Gestión</h1>
+        
+        <div class="menu-container">
+            <button id="btnNuevaCaja" class="menu-button">Registrar Nueva Caja</button>
+            <button id="btnNuevoEvento" class="menu-button">Registrar Nuevo Evento</button>
+            <button id="btnListarCajas" class="menu-button">Listar Cajas</button>
+            <button id="btnListarEventos" class="menu-button">Listar Eventos</button>
+        </div>
+    </div>
+    
+    <script>
+        const { ipcRenderer } = require('electron');
+        
+        document.getElementById('btnNuevaCaja').addEventListener('click', () => {
+            ipcRenderer.send('abrir-formulario-caja');
+        });
+        
+        document.getElementById('btnNuevoEvento').addEventListener('click', () => {
+            ipcRenderer.send('abrir-formulario-evento');
+        });
+        
+        document.getElementById('btnListarCajas').addEventListener('click', () => {
+            // Implementación pendiente
+            alert('Funcionalidad en desarrollo');
+        });
+        
+        document.getElementById('btnListarEventos').addEventListener('click', () => {
+            // Implementación pendiente
+            alert('Funcionalidad en desarrollo');
+        });
+    </script>
 </body>
 </html>

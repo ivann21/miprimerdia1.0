@@ -7,5 +7,11 @@ contextBridge.exposeInMainWorld('api', {
     },
     obtenerTiposCaja: async () => {
         return await database.obtenerTiposCaja();
+    },
+    guardarEvento: async (datos) => {
+        return await database.guardarEvento(datos);
+    },
+    obtenerTiposEvento: async () => {
+        return await database.obtenerTiposEvento();
     }
 });
