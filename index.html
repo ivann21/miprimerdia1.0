@@ -49,19 +49,16 @@
         document.getElementById('btnNuevaCaja').addEventListener('click', () => {
             ipcRenderer.send('abrir-formulario-caja');
         });
-        
-        document.getElementById('btnNuevoEvento').addEventListener('click', () => {
+          document.getElementById('btnNuevoEvento').addEventListener('click', () => {
             ipcRenderer.send('abrir-formulario-evento');
         });
         
         document.getElementById('btnListarCajas').addEventListener('click', () => {
-            // Implementación pendiente
-            alert('Funcionalidad en desarrollo');
+            ipcRenderer.send('abrir-listado-cajas');
         });
         
         document.getElementById('btnListarEventos').addEventListener('click', () => {
-            // Implementación pendiente
-            alert('Funcionalidad en desarrollo');
+            ipcRenderer.send('abrir-listado-eventos');
         });
     </script>
 </body>

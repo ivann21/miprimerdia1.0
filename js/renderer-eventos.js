@@ -1,8 +1,13 @@
 // Archivo de manejo de formulario de eventos
 const { ipcRenderer } = require('electron');
 
+// Variable para controlar si estamos editando
+let modoEdicion = false;
+let idEventoEdicion = null;
+
 document.addEventListener('DOMContentLoaded', () => {
     const formulario = document.getElementById('eventoForm');
+    const btnGuardar = document.getElementById('btnGuardar');
     const btnCancelar = document.getElementById('btnCancelar');
     const mensajeDiv = document.getElementById('mensaje');
 
@@ -12,8 +17,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Cargar los datos del cliente si está editando
     ipcRenderer.on('cargar-datos-evento', (event, datos) => {
         if (datos) {
+            modoEdicion = true;
+            idEventoEdicion = datos.servicio.id;
+            
             // Cliente
             document.getElementById('nombreCliente').value = datos.cliente.nombre_apellidos || '';
+            document.getElementById('nombreCliente').dataset.idCliente = datos.cliente.id;
             document.getElementById('emailCliente').value = datos.cliente.email || '';
             document.getElementById('telefonoCliente').value = datos.cliente.telefono || '';
             document.getElementById('direccionCliente').value = datos.cliente.direccion || '';
@@ -28,6 +37,9 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('notasCliente').value = datos.servicio.notas_cliente || '';
             document.getElementById('observacionesInternas').value = datos.servicio.observaciones_internas || '';
             document.getElementById('precioTotal').value = datos.servicio.precio_total || '0.00';
+            
+            // Cambiar texto del botón
+            btnGuardar.textContent = 'Actualizar Evento';
         }
     });
 
@@ -64,7 +76,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
         
-        ipcRenderer.send('guardar-evento', datosEvento);
+        if (modoEdicion) {
+            // Añadir IDs para actualización
+            datosEvento.cliente.id = document.getElementById('nombreCliente').dataset.idCliente;
+            datosEvento.servicio.id = idEventoEdicion;
+            
+            ipcRenderer.send('actualizar-evento', datosEvento);
+        } else {
+            ipcRenderer.send('guardar-evento', datosEvento);
+        }
     });
     
     // Manejar cancelación
@@ -74,6 +94,18 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Recibir respuesta después de guardar
     ipcRenderer.on('evento-guardado', (event, resultado) => {
+        if (resultado.exito) {
+            mostrarMensaje(resultado.mensaje, 'exito');
+            setTimeout(() => {
+                ipcRenderer.send('cerrar-ventana-evento');
+            }, 2000);
+        } else {
+            mostrarMensaje(resultado.mensaje, 'error');
+        }
+    });
+    
+    // Recibir respuesta después de actualizar
+    ipcRenderer.on('evento-actualizado', (event, resultado) => {
         if (resultado.exito) {
             mostrarMensaje(resultado.mensaje, 'exito');
             setTimeout(() => {
@@ -99,7 +131,9 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             mensajeDiv.style.display = 'none';
         }, 5000);
-    }    // Función para cargar los tipos de evento desde la base de datos
+    }
+    
+    // Función para cargar los tipos de evento desde la base de datos
     function cargarTiposEvento() {
         try {
             ipcRenderer.send('obtener-tipos-evento');

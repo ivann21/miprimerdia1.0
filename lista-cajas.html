@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Listado de Cajas</title>
+    <link rel="stylesheet" href="styles/styles.css">
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .acciones {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .btn-accion {
+            padding: 5px 10px;
+            border-radius: 3px;
+            color: white;
+            cursor: pointer;
+        }
+        
+        .btn-editar {
+            background-color: #3498db;
+        }
+        
+        .btn-eliminar {
+            background-color: #e74c3c;
+        }
+        
+        .btn-exportar {
+            background-color: #27ae60;
+            color: white;
+            margin-left: 15px;
+        }
+        
+        .filtros {
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-start;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            background-color: #f9f9f9;
+        }
+        
+        .filtros select, .filtros input {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        
+        .grupo-filtro {
+            margin-bottom: 10px;
+        }
+        
+        .filtros-avanzados {
+            width: 100%;
+            padding-top: 10px;
+            border-top: 1px dashed #ccc;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .btn-filtros-avanzados {
+            background-color: #7f8c8d;
+            color: white;
+            margin-bottom: 10px;
+        }
+        
+        .btn-volver {
+            margin-top: 20px;
+            background-color: #34495e;
+            color: white;
+        }
+        
+        .acciones-tabla {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .total-registros {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Listado de Cajas</h1>
+          <div class="filtros">
+            <div class="grupo-filtro">
+                <label for="filtroEstado">Estado:</label>
+                <select id="filtroEstado">
+                    <option value="">Todos</option>
+                    <option value="pendiente">Pendiente</option>
+                    <option value="preparada">Preparada</option>
+                    <option value="entregada">Entregada</option>
+                    <option value="cancelada">Cancelada</option>
+                </select>
+            </div>
+            
+            <div class="grupo-filtro">
+                <label for="filtroCaja">Tipo de Caja:</label>
+                <select id="filtroCaja">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            
+            <div class="grupo-filtro">
+                <label for="buscar">Buscar:</label>
+                <input type="text" id="buscar" placeholder="Nombre, apellidos o número de caja">
+            </div>
+            
+            <div>
+                <button id="btnFiltrosAvanzados" class="btn-accion btn-filtros-avanzados">Filtros Avanzados</button>
+            </div>
+            
+            <div class="filtros-avanzados" id="filtrosAvanzados">
+                <div class="grupo-filtro">
+                    <label for="fechaEntregaDesde">Fecha Entrega Desde:</label>
+                    <input type="date" id="fechaEntregaDesde">
+                </div>
+                
+                <div class="grupo-filtro">
+                    <label for="fechaEntregaHasta">Fecha Entrega Hasta:</label>
+                    <input type="date" id="fechaEntregaHasta">
+                </div>
+                
+                <div class="grupo-filtro">
+                    <label for="precioMinimo">Precio Mínimo:</label>
+                    <input type="number" id="precioMinimo" min="0" step="0.01" placeholder="0.00">
+                </div>
+                
+                <div class="grupo-filtro">
+                    <label for="precioMaximo">Precio Máximo:</label>
+                    <input type="number" id="precioMaximo" min="0" step="0.01" placeholder="1000.00">
+                </div>
+                
+                <div class="grupo-filtro">
+                    <label for="buscarPersonalizacion">Buscar en Personalización:</label>
+                    <input type="text" id="buscarPersonalizacion" placeholder="Personalización">
+                </div>            </div>
+            
+            <div>
+                <button id="btnFiltrar" class="btn-accion btn-editar">Filtrar</button>
+                <button id="btnLimpiar" class="btn-accion">Limpiar</button>
+            </div>
+        </div>
+        
+        <div class="acciones-tabla">
+            <div class="total-registros" id="totalRegistros">Total: 0 cajas</div>
+            <button id="btnExportar" class="btn-accion btn-exportar">Exportar a CSV</button>
+        </div>
+                Total de Registros: 0
+            </div>
+            
+            <div>
+                <button id="btnExportar" class="btn-accion btn-exportar">Exportar a Excel</button>
+            </div>
+        </div>
+        
+        <table id="tablaCajas">
+            <thead>
+                <tr>
+                    <th>Número</th>
+                    <th>Tipo</th>
+                    <th>Bebé</th>
+                    <th>Cliente</th>
+                    <th>Fecha Entrega</th>
+                    <th>Estado</th>
+                    <th>Precio</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="bodyCajas">
+                <!-- Aquí se cargarán las cajas dinámicamente -->
+            </tbody>
+        </table>
+        
+        <div id="mensaje"></div>
+        
+        <button id="btnVolver" class="btn-volver">Volver al Menú</button>
+    </div>
+    
+    <script>
+        const { ipcRenderer } = require('electron');
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // Cargar tipos de caja para el filtro
+            cargarTiposCaja();
+              // Cargar listado inicial
+            cargarCajas();
+            
+            // Eventos de filtrado
+            document.getElementById('btnFiltrar').addEventListener('click', cargarCajas);
+            document.getElementById('btnLimpiar').addEventListener('click', limpiarFiltros);
+            
+            // Evento para mostrar/ocultar filtros avanzados
+            document.getElementById('btnFiltrosAvanzados').addEventListener('click', toggleFiltrosAvanzados);
+            
+            // Evento para volver al menú principal
+            document.getElementById('btnVolver').addEventListener('click', () => {
+                ipcRenderer.send('volver-menu');
+            });
+            
+            // Evento para exportar a Excel
+            document.getElementById('btnExportar').addEventListener('click', exportarCSV);
+            
+            // Función para exportar a CSV
+            function exportarCSV() {
+                const cajas = JSON.parse(localStorage.getItem('cajas') || '[]');
+                if (cajas.length === 0) {
+                    mostrarMensaje('No hay datos para exportar', 'error');
+                    return;
+                }
+                
+                let csv = 'Número,Tipo,Bebé,Cliente,Fecha Entrega,Estado,Precio\n';
+                
+                cajas.forEach(caja => {
+                    const fechaEntrega = caja.fecha_entrega ? new Date(caja.fecha_entrega).toLocaleDateString() : '-';
+                    const fila = [
+                        `"${caja.numero_caja}"`,
+                        `"${caja.tipo_caja}"`,
+                        `"${caja.nombre_bebe} ${caja.apellidos_bebe}"`,
+                        `"${caja.nombre_cliente}"`,
+                        `"${fechaEntrega}"`,
+                        `"${traducirEstado(caja.estado)}"`,
+                        `"${caja.precio_final}€"`
+                    ];
+                    csv += fila.join(',') + '\n';
+                });
+                
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                
+                link.setAttribute('href', url);
+                link.setAttribute('download', `cajas_${new Date().toISOString().split('T')[0]}.csv`);
+                link.style.visibility = 'hidden';
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                mostrarMensaje('Datos exportados correctamente', 'success');
+            }
+            
+            function toggleFiltrosAvanzados() {
+                const filtrosAvanzados = document.getElementById('filtrosAvanzados');
+                const btnFiltrosAvanzados = document.getElementById('btnFiltrosAvanzados');
+                
+                if (filtrosAvanzados.style.display === 'block') {
+                    filtrosAvanzados.style.display = 'none';
+                    btnFiltrosAvanzados.textContent = 'Filtros Avanzados';
+                } else {
+                    filtrosAvanzados.style.display = 'block';
+                    btnFiltrosAvanzados.textContent = 'Ocultar Filtros Avanzados';
+                }
+            }
+            
+            function limpiarFiltros() {
+                document.getElementById('filtroEstado').value = '';
+                document.getElementById('filtroCaja').value = '';
+                document.getElementById('buscar').value = '';
+                document.getElementById('fechaEntregaDesde').value = '';
+                document.getElementById('fechaEntregaHasta').value = '';
+                document.getElementById('precioMinimo').value = '';
+                document.getElementById('precioMaximo').value = '';
+                document.getElementById('buscarPersonalizacion').value = '';
+                cargarCajas();
+            }
+            
+            function cargarCajas() {
+                const filtros = {
+                    estado: document.getElementById('filtroEstado').value,
+                    tipoCaja: document.getElementById('filtroCaja').value,
+                    busqueda: document.getElementById('buscar').value,
+                    fechaEntregaDesde: document.getElementById('fechaEntregaDesde').value,
+                    fechaEntregaHasta: document.getElementById('fechaEntregaHasta').value,
+                    precioMinimo: document.getElementById('precioMinimo').value,
+                    precioMaximo: document.getElementById('precioMaximo').value,
+                    buscarPersonalizacion: document.getElementById('buscarPersonalizacion').value
+                };
+                
+                ipcRenderer.send('listar-cajas', filtros);
+            }
+            
+            function cargarTiposCaja() {
+                ipcRenderer.send('obtener-tipos-caja');
+            }
+            
+            ipcRenderer.on('tipos-caja-obtenidos', (event, tiposCaja) => {
+                const select = document.getElementById('filtroCaja');
+                
+                // Mantener la opción "Todos"
+                const opcionTodos = select.options[0];
+                select.innerHTML = '';
+                select.appendChild(opcionTodos);
+                
+                // Agregar opciones desde la base de datos
+                tiposCaja.forEach(tipo => {
+                    const option = document.createElement('option');
+                    option.value = tipo.id;
+                    option.textContent = tipo.nombre;
+                    select.appendChild(option);
+                });
+            });
+              ipcRenderer.on('cajas-listadas', (event, cajas) => {
+                const tbody = document.getElementById('bodyCajas');
+                tbody.innerHTML = '';
+                
+                // Guardar datos en localStorage para exportación
+                localStorage.setItem('cajas', JSON.stringify(cajas));
+                
+                // Actualizar total de registros
+                document.getElementById('totalRegistros').textContent = `Total: ${cajas.length} cajas`;
+                
+                if (cajas.length === 0) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td colspan="8" style="text-align:center">No se encontraron cajas</td>';
+                    tbody.appendChild(tr);
+                    return;
+                }
+                
+                cajas.forEach(caja => {
+                    const tr = document.createElement('tr');
+                    
+                    // Formatear fecha
+                    const fechaEntrega = caja.fecha_entrega ? new Date(caja.fecha_entrega).toLocaleDateString() : '-';
+                    
+                    tr.innerHTML = `
+                        <td>${caja.numero_caja}</td>
+                        <td>${caja.tipo_caja}</td>
+                        <td>${caja.nombre_bebe} ${caja.apellidos_bebe}</td>
+                        <td>${caja.nombre_cliente}</td>
+                        <td>${fechaEntrega}</td>
+                        <td>${traducirEstado(caja.estado)}</td>
+                        <td>${caja.precio_final}€</td>
+                        <td class="acciones">
+                            <button class="btn-accion btn-editar" data-id="${caja.id}">Editar</button>
+                            <button class="btn-accion btn-eliminar" data-id="${caja.id}">Eliminar</button>
+                        </td>
+                    `;
+                    
+                    tbody.appendChild(tr);
+                });
+                
+                // Actualizar total de registros
+                document.getElementById('totalRegistros').textContent = `Total de Registros: ${cajas.length}`;
+                
+                // Agregar eventos a los botones de acción
+                document.querySelectorAll('.btn-editar').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const id = e.target.getAttribute('data-id');
+                        ipcRenderer.send('editar-caja', id);
+                    });
+                });
+                
+                document.querySelectorAll('.btn-eliminar').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        if (confirm('¿Está seguro que desea eliminar esta caja?')) {
+                            const id = e.target.getAttribute('data-id');
+                            ipcRenderer.send('eliminar-caja', id);
+                        }
+                    });
+                });
+            });
+            
+            ipcRenderer.on('caja-eliminada', (event, resultado) => {
+                if (resultado.success) {
+                    mostrarMensaje('Caja eliminada correctamente', 'success');
+                    cargarCajas();
+                } else {
+                    mostrarMensaje(`Error: ${resultado.message}`, 'error');
+                }
+            });
+            
+            function traducirEstado(estado) {
+                const estados = {
+                    'pendiente': 'Pendiente',
+                    'preparada': 'Preparada',
+                    'entregada': 'Entregada',
+                    'cancelada': 'Cancelada'
+                };
+                return estados[estado] || estado;
+            }
+            
+            function mostrarMensaje(texto, tipo) {
+                const mensajeDiv = document.getElementById('mensaje');
+                mensajeDiv.textContent = texto;
+                mensajeDiv.className = tipo;
+                mensajeDiv.style.display = 'block';
+                
+                setTimeout(() => {
+                    mensajeDiv.style.display = 'none';
+                }, 5000);
+            }
+        });
+    </script>
+</body>
+</html>
