@@ -59,10 +59,14 @@ function createEventoWindow() {
         }
     });
 
-    eventoWindow.loadFile('form-eventos.html');
-
-    eventoWindow.on('closed', function () {
+    eventoWindow.loadFile('form-eventos.html');    eventoWindow.on('closed', function () {
+        console.log('Evento ventana cerrada: limpiando referencia');
         eventoWindow = null;
+    });
+    
+    eventoWindow.on('close', function (e) {
+        // Este evento se dispara antes de que la ventana se cierre
+        console.log('Evento ventana cerrándose');
     });
 }
 
@@ -131,8 +135,15 @@ ipcMain.on('abrir-formulario-evento', () => {
 });
 
 ipcMain.on('cerrar-ventana-evento', () => {
-    if (eventoWindow) {
-        eventoWindow.close();
+    try {
+        if (eventoWindow) {
+            eventoWindow.close();
+            console.log('Ventana de eventos cerrada correctamente');
+        } else {
+            console.log('No se pudo cerrar la ventana: eventoWindow es null');
+        }
+    } catch (error) {
+        console.error('Error al cerrar la ventana de eventos:', error);
     }
 });
 

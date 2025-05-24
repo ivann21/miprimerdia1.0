@@ -85,11 +85,30 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             ipcRenderer.send('guardar-evento', datosEvento);
         }
-    });
-    
-    // Manejar cancelación
+    });    // Manejar cancelación
     btnCancelar.addEventListener('click', () => {
-        ipcRenderer.send('cerrar-ventana-evento');
+        try {
+            console.log('Botón cancelar presionado, enviando evento cerrar-ventana-evento');
+            
+            // Verificar que ipcRenderer está disponible antes de usarlo
+            if (ipcRenderer) {
+                ipcRenderer.send('cerrar-ventana-evento');
+                
+                // Como alternativa, podemos intentar cerrar directamente la ventana
+                // en caso de que el IPC no funcione correctamente
+                setTimeout(() => {
+                    console.log('Intentando cerrar ventana con window.close() como fallback');
+                    window.close();
+                }, 100);
+            } else {
+                console.warn('ipcRenderer no disponible, usando window.close() directamente');
+                window.close();
+            }
+        } catch (error) {
+            console.error('Error al cancelar:', error);
+            // Intenta cerrar la ventana directamente como alternativa
+            window.close();
+        }
     });
     
     // Recibir respuesta después de guardar
@@ -121,9 +140,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const date = new Date(dateString);
         return date.toISOString().split('T')[0]; // formato YYYY-MM-DD
     }
-    
-    // Función para mostrar mensajes
+      // Función para mostrar mensajes
     function mostrarMensaje(texto, tipo) {
+        console.log(`Mostrando mensaje: ${texto} (${tipo})`);
         mensajeDiv.textContent = texto;
         mensajeDiv.className = tipo;
         mensajeDiv.style.display = 'block';

@@ -170,17 +170,9 @@
                 <button id="btnLimpiar" class="btn-accion">Limpiar</button>
             </div>
         </div>
-        
-        <div class="acciones-tabla">
+          <div class="acciones-tabla">
             <div class="total-registros" id="totalRegistros">Total: 0 cajas</div>
             <button id="btnExportar" class="btn-accion btn-exportar">Exportar a CSV</button>
-        </div>
-                Total de Registros: 0
-            </div>
-            
-            <div>
-                <button id="btnExportar" class="btn-accion btn-exportar">Exportar a Excel</button>
-            </div>
         </div>
         
         <table id="tablaCajas">
@@ -221,52 +213,110 @@
             
             // Evento para mostrar/ocultar filtros avanzados
             document.getElementById('btnFiltrosAvanzados').addEventListener('click', toggleFiltrosAvanzados);
-            
-            // Evento para volver al menú principal
+              // Evento para volver al menú principal
             document.getElementById('btnVolver').addEventListener('click', () => {
-                ipcRenderer.send('volver-menu');
-            });
-            
-            // Evento para exportar a Excel
-            document.getElementById('btnExportar').addEventListener('click', exportarCSV);
-            
-            // Función para exportar a CSV
-            function exportarCSV() {
-                const cajas = JSON.parse(localStorage.getItem('cajas') || '[]');
-                if (cajas.length === 0) {
-                    mostrarMensaje('No hay datos para exportar', 'error');
-                    return;
+                try {
+                    ipcRenderer.send('volver-menu');
+                } catch (error) {
+                    console.error('Error al volver al menú:', error);
+                    mostrarMensaje('Error al volver al menú principal', 'error');
                 }
-                
-                let csv = 'Número,Tipo,Bebé,Cliente,Fecha Entrega,Estado,Precio\n';
-                
-                cajas.forEach(caja => {
-                    const fechaEntrega = caja.fecha_entrega ? new Date(caja.fecha_entrega).toLocaleDateString() : '-';
-                    const fila = [
-                        `"${caja.numero_caja}"`,
-                        `"${caja.tipo_caja}"`,
-                        `"${caja.nombre_bebe} ${caja.apellidos_bebe}"`,
-                        `"${caja.nombre_cliente}"`,
-                        `"${fechaEntrega}"`,
-                        `"${traducirEstado(caja.estado)}"`,
-                        `"${caja.precio_final}€"`
-                    ];
-                    csv += fila.join(',') + '\n';
-                });
-                
-                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-                const url = URL.createObjectURL(blob);
-                
-                link.setAttribute('href', url);
-                link.setAttribute('download', `cajas_${new Date().toISOString().split('T')[0]}.csv`);
-                link.style.visibility = 'hidden';
-                
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                mostrarMensaje('Datos exportados correctamente', 'success');
+            });
+              // Evento para exportar a CSV
+            document.getElementById('btnExportar').addEventListener('click', function() {
+                try {
+                    exportarCSV();
+                } catch (error) {
+                    console.error('Error al iniciar exportación CSV:', error);
+                    mostrarMensaje('Error al iniciar la exportación', 'error');
+                }
+            });
+              // Función para exportar a CSV
+            function exportarCSV() {
+                try {
+                    const cajas = JSON.parse(localStorage.getItem('cajas') || '[]');
+                    if (cajas.length === 0) {
+                        mostrarMensaje('No hay datos para exportar', 'error');
+                        return;
+                    }
+                    
+                    // Indicador de exportación
+                    const btnExportar = document.getElementById('btnExportar');
+                    const textoOriginal = btnExportar.textContent;
+                    btnExportar.textContent = 'Exportando...';
+                    btnExportar.disabled = true;
+                    
+                    let csv = 'Número,Tipo,Bebé,Cliente,Fecha Entrega,Estado,Precio\n';
+                    
+                    cajas.forEach(caja => {
+                        try {
+                            // Sanitizar datos
+                            const numero_caja = caja.numero_caja || 'Sin número';
+                            const tipo_caja = caja.tipo_caja || 'Sin especificar';
+                            const nombre_bebe = caja.nombre_bebe || '';
+                            const apellidos_bebe = caja.apellidos_bebe || '';
+                            const nombre_cliente = caja.nombre_cliente || 'Sin nombre';
+                            const estado = caja.estado || 'pendiente';
+                            const precio_final = isNaN(parseFloat(caja.precio_final)) ? 0 : parseFloat(caja.precio_final);
+                            
+                            // Formatear fecha con manejo de errores
+                            let fechaEntrega = '-';
+                            try {
+                                if (caja.fecha_entrega) {
+                                    fechaEntrega = new Date(caja.fecha_entrega).toLocaleDateString();
+                                }
+                            } catch (e) {
+                                console.error('Error al formatear fecha en exportación:', e);
+                                fechaEntrega = 'Fecha inválida';
+                            }
+                            
+                            // Escapar comillas en los textos para evitar problemas en el CSV
+                            const escaparCSV = (texto) => {
+                                if (texto === null || texto === undefined) return '';
+                                return `"${String(texto).replace(/"/g, '""')}"`;
+                            };
+                            
+                            const fila = [
+                                escaparCSV(numero_caja),
+                                escaparCSV(tipo_caja),
+                                escaparCSV(`${nombre_bebe} ${apellidos_bebe}`),
+                                escaparCSV(nombre_cliente),
+                                escaparCSV(fechaEntrega),
+                                escaparCSV(traducirEstado(estado)),
+                                escaparCSV(`${precio_final.toFixed(2)}€`)
+                            ];
+                            csv += fila.join(',') + '\n';
+                        } catch (error) {
+                            console.error('Error al procesar una fila para CSV:', error);
+                            // Continuar con la siguiente fila
+                        }
+                    });
+                    
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    const url = URL.createObjectURL(blob);
+                    
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', `cajas_${new Date().toISOString().split('T')[0]}.csv`);
+                    link.style.visibility = 'hidden';
+                    
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // Liberar recursos
+                    setTimeout(() => {
+                        URL.revokeObjectURL(url);
+                        btnExportar.textContent = textoOriginal;
+                        btnExportar.disabled = false;
+                        mostrarMensaje('Datos exportados correctamente', 'success');
+                    }, 500);
+                } catch (error) {
+                    console.error('Error al exportar CSV:', error);
+                    document.getElementById('btnExportar').textContent = 'Exportar a CSV';
+                    document.getElementById('btnExportar').disabled = false;
+                    mostrarMensaje('Error al exportar: ' + error.message, 'error');
+                }
             }
             
             function toggleFiltrosAvanzados() {
@@ -293,109 +343,201 @@
                 document.getElementById('buscarPersonalizacion').value = '';
                 cargarCajas();
             }
-            
-            function cargarCajas() {
-                const filtros = {
-                    estado: document.getElementById('filtroEstado').value,
-                    tipoCaja: document.getElementById('filtroCaja').value,
-                    busqueda: document.getElementById('buscar').value,
-                    fechaEntregaDesde: document.getElementById('fechaEntregaDesde').value,
-                    fechaEntregaHasta: document.getElementById('fechaEntregaHasta').value,
-                    precioMinimo: document.getElementById('precioMinimo').value,
-                    precioMaximo: document.getElementById('precioMaximo').value,
-                    buscarPersonalizacion: document.getElementById('buscarPersonalizacion').value
-                };
-                
-                ipcRenderer.send('listar-cajas', filtros);
+              function cargarCajas() {
+                try {
+                    // Validar fechas y precios antes de enviar
+                    const fechaEntregaDesde = document.getElementById('fechaEntregaDesde').value;
+                    const fechaEntregaHasta = document.getElementById('fechaEntregaHasta').value;
+                    
+                    // Validación de rangos de fechas
+                    if (fechaEntregaDesde && fechaEntregaHasta && fechaEntregaDesde > fechaEntregaHasta) {
+                        mostrarMensaje('La fecha de inicio de entrega debe ser anterior a la fecha de fin', 'error');
+                        return;
+                    }
+                    
+                    // Validación de rangos de precios
+                    const precioMinimo = document.getElementById('precioMinimo').value;
+                    const precioMaximo = document.getElementById('precioMaximo').value;
+                    
+                    if (precioMinimo && precioMaximo && parseFloat(precioMinimo) > parseFloat(precioMaximo)) {
+                        mostrarMensaje('El precio mínimo no puede ser mayor que el precio máximo', 'error');
+                        return;
+                    }
+                    
+                    const filtros = {
+                        estado: document.getElementById('filtroEstado').value,
+                        tipoCaja: document.getElementById('filtroCaja').value,
+                        busqueda: document.getElementById('buscar').value.trim(),
+                        fechaEntregaDesde: fechaEntregaDesde,
+                        fechaEntregaHasta: fechaEntregaHasta,
+                        precioMinimo: precioMinimo,
+                        precioMaximo: precioMaximo,
+                        buscarPersonalizacion: document.getElementById('buscarPersonalizacion').value.trim()
+                    };
+                    
+                    // Mostrar indicador de carga
+                    document.getElementById('bodyCajas').innerHTML = '<tr><td colspan="8" style="text-align:center">Cargando...</td></tr>';
+                    
+                    ipcRenderer.send('listar-cajas', filtros);
+                } catch (error) {
+                    console.error('Error al cargar cajas:', error);
+                    mostrarMensaje('Error al cargar cajas: ' + error.message, 'error');
+                }
             }
-            
-            function cargarTiposCaja() {
-                ipcRenderer.send('obtener-tipos-caja');
+              function cargarTiposCaja() {
+                try {
+                    ipcRenderer.send('obtener-tipos-caja');
+                } catch (error) {
+                    console.error('Error al solicitar tipos de caja:', error);
+                    mostrarMensaje('Error al cargar los tipos de caja', 'error');
+                }
             }
             
             ipcRenderer.on('tipos-caja-obtenidos', (event, tiposCaja) => {
-                const select = document.getElementById('filtroCaja');
-                
-                // Mantener la opción "Todos"
-                const opcionTodos = select.options[0];
-                select.innerHTML = '';
-                select.appendChild(opcionTodos);
-                
-                // Agregar opciones desde la base de datos
-                tiposCaja.forEach(tipo => {
-                    const option = document.createElement('option');
-                    option.value = tipo.id;
-                    option.textContent = tipo.nombre;
-                    select.appendChild(option);
-                });
-            });
-              ipcRenderer.on('cajas-listadas', (event, cajas) => {
+                try {
+                    const select = document.getElementById('filtroCaja');
+                    if (!select) {
+                        console.error('No se encontró el elemento select para tipos de caja');
+                        return;
+                    }
+                    
+                    // Mantener la opción "Todos"
+                    let opcionTodos;
+                    if (select.options.length > 0) {
+                        opcionTodos = select.options[0];
+                    } else {
+                        opcionTodos = document.createElement('option');
+                        opcionTodos.value = '';
+                        opcionTodos.textContent = 'Todos';
+                    }
+                    
+                    select.innerHTML = '';
+                    select.appendChild(opcionTodos);
+                    
+                    // Verificar que tiposCaja sea un array válido
+                    if (!Array.isArray(tiposCaja)) {
+                        console.error('Los tipos de caja recibidos no son un array válido');
+                        return;
+                    }
+                    
+                    // Agregar opciones desde la base de datos
+                    tiposCaja.forEach(tipo => {
+                        if (tipo && tipo.id) {
+                            const option = document.createElement('option');
+                            option.value = tipo.id;
+                            option.textContent = tipo.nombre || `Tipo ${tipo.id}`;
+                            select.appendChild(option);
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error al procesar tipos de caja:', error);
+                }
+            });ipcRenderer.on('cajas-listadas', (event, cajas) => {
                 const tbody = document.getElementById('bodyCajas');
                 tbody.innerHTML = '';
                 
-                // Guardar datos en localStorage para exportación
-                localStorage.setItem('cajas', JSON.stringify(cajas));
-                
-                // Actualizar total de registros
-                document.getElementById('totalRegistros').textContent = `Total: ${cajas.length} cajas`;
-                
-                if (cajas.length === 0) {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = '<td colspan="8" style="text-align:center">No se encontraron cajas</td>';
-                    tbody.appendChild(tr);
-                    return;
-                }
-                
-                cajas.forEach(caja => {
-                    const tr = document.createElement('tr');
+                try {
+                    // Verificar si cajas es un array válido
+                    if (!Array.isArray(cajas)) {
+                        console.error('Error: Los datos recibidos no son un array válido', cajas);
+                        mostrarMensaje('Error al cargar las cajas: Formato de datos incorrecto', 'error');
+                        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center">Error al cargar los datos</td></tr>';
+                        return;
+                    }
                     
-                    // Formatear fecha
-                    const fechaEntrega = caja.fecha_entrega ? new Date(caja.fecha_entrega).toLocaleDateString() : '-';
+                    // Guardar datos en localStorage para exportación
+                    localStorage.setItem('cajas', JSON.stringify(cajas));
                     
-                    tr.innerHTML = `
-                        <td>${caja.numero_caja}</td>
-                        <td>${caja.tipo_caja}</td>
-                        <td>${caja.nombre_bebe} ${caja.apellidos_bebe}</td>
-                        <td>${caja.nombre_cliente}</td>
-                        <td>${fechaEntrega}</td>
-                        <td>${traducirEstado(caja.estado)}</td>
-                        <td>${caja.precio_final}€</td>
-                        <td class="acciones">
-                            <button class="btn-accion btn-editar" data-id="${caja.id}">Editar</button>
-                            <button class="btn-accion btn-eliminar" data-id="${caja.id}">Eliminar</button>
-                        </td>
-                    `;
-                    
-                    tbody.appendChild(tr);
-                });
+                    // Actualizar total de registros
+                    document.getElementById('totalRegistros').textContent = `Total: ${cajas.length} cajas`;
+                      if (cajas.length === 0) {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = '<td colspan="8" style="text-align:center">No se encontraron cajas</td>';
+                        tbody.appendChild(tr);
+                        return;
+                    }
                 
-                // Actualizar total de registros
-                document.getElementById('totalRegistros').textContent = `Total de Registros: ${cajas.length}`;
-                
-                // Agregar eventos a los botones de acción
-                document.querySelectorAll('.btn-editar').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const id = e.target.getAttribute('data-id');
-                        ipcRenderer.send('editar-caja', id);
-                    });
-                });
-                
-                document.querySelectorAll('.btn-eliminar').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        if (confirm('¿Está seguro que desea eliminar esta caja?')) {
-                            const id = e.target.getAttribute('data-id');
-                            ipcRenderer.send('eliminar-caja', id);
+                    cajas.forEach(caja => {
+                        try {
+                            const tr = document.createElement('tr');
+                            
+                            // Asegurarse que todas las propiedades existan para evitar errores
+                            const cajaSanitizada = {
+                                id: caja.id || '',
+                                numero_caja: caja.numero_caja || 'Sin número',
+                                tipo_caja: caja.tipo_caja || 'Sin especificar',
+                                nombre_bebe: caja.nombre_bebe || '',
+                                apellidos_bebe: caja.apellidos_bebe || '',
+                                nombre_cliente: caja.nombre_cliente || 'Sin cliente',
+                                fecha_entrega: caja.fecha_entrega || null,
+                                estado: caja.estado || 'pendiente',
+                                precio_final: isNaN(parseFloat(caja.precio_final)) ? 0 : parseFloat(caja.precio_final)
+                            };
+                            
+                            // Formatear fecha con manejo de errores
+                            let fechaEntrega = '-';
+                            try {
+                                if (cajaSanitizada.fecha_entrega) {
+                                    fechaEntrega = new Date(cajaSanitizada.fecha_entrega).toLocaleDateString();
+                                }
+                            } catch (e) {
+                                console.error('Error al formatear fecha de entrega:', e);
+                                fechaEntrega = 'Fecha inválida';
+                            }
+                        
+                            tr.innerHTML = `
+                                <td>${cajaSanitizada.numero_caja}</td>
+                                <td>${cajaSanitizada.tipo_caja}</td>
+                                <td>${cajaSanitizada.nombre_bebe} ${cajaSanitizada.apellidos_bebe}</td>
+                                <td>${cajaSanitizada.nombre_cliente}</td>
+                                <td>${fechaEntrega}</td>
+                                <td>${traducirEstado(cajaSanitizada.estado)}</td>
+                                <td>${cajaSanitizada.precio_final.toFixed(2)}€</td>
+                                <td class="acciones">
+                                    <button class="btn-accion btn-editar" data-id="${cajaSanitizada.id}">Editar</button>
+                                    <button class="btn-accion btn-eliminar" data-id="${cajaSanitizada.id}">Eliminar</button>
+                                </td>
+                            `;
+                            
+                            tbody.appendChild(tr);
+                        } catch (error) {
+                            console.error('Error al procesar la caja:', error, caja);
                         }
                     });
-                });
+                      // Actualizar total de registros
+                    document.getElementById('totalRegistros').textContent = `Total: ${cajas.length} cajas`;
+                    
+                    // Agregar eventos a los botones de acción
+                    document.querySelectorAll('.btn-editar').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            const id = e.target.getAttribute('data-id');
+                            ipcRenderer.send('editar-caja', id);
+                        });
+                    });
+                      document.querySelectorAll('.btn-eliminar').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            if (confirm('¿Está seguro que desea eliminar esta caja?')) {
+                                const id = e.target.getAttribute('data-id');
+                                ipcRenderer.send('eliminar-caja', id);
+                            }
+                        });
+                    });
+                } catch (error) {
+                    console.error('Error al procesar listado de cajas:', error);
+                    mostrarMensaje('Error al procesar el listado: ' + error.message, 'error');
+                }
             });
-            
-            ipcRenderer.on('caja-eliminada', (event, resultado) => {
-                if (resultado.success) {
-                    mostrarMensaje('Caja eliminada correctamente', 'success');
-                    cargarCajas();
-                } else {
-                    mostrarMensaje(`Error: ${resultado.message}`, 'error');
+              ipcRenderer.on('caja-eliminada', (event, resultado) => {
+                try {
+                    if (resultado.success) {
+                        mostrarMensaje('Caja eliminada correctamente', 'success');
+                        cargarCajas();
+                    } else {
+                        mostrarMensaje(`Error: ${resultado.message || 'No se pudo eliminar la caja'}`, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error al procesar respuesta de eliminación:', error);
+                    mostrarMensaje('Error al procesar la eliminación de la caja', 'error');
                 }
             });
             
