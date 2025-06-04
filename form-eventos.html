@@ -43,11 +43,6 @@
                     <label for="ciudadCliente">Ciudad:</label>
                     <input type="text" id="ciudadCliente" name="ciudadCliente">
                 </div>
-                
-                <div class="form-group">
-                    <label for="fechaNacimientoCliente">Fecha de Nacimiento:</label>
-                    <input type="date" id="fechaNacimientoCliente" name="fechaNacimientoCliente">
-                </div>
             </fieldset>
             
             <!-- Sección de Datos del Evento -->
@@ -55,7 +50,7 @@
                 <legend>Datos del Evento</legend>
                 <div class="form-group">
                     <label for="tipoEvento">Tipo de Evento:</label>
-                    <select id="tipoEvento" name="tipoEvento" required>
+                    <select id="tipoEvento" name="tipoEvento">
                         <option value="">Seleccione un tipo de evento</option>
                         <option value="2">Evento corporativo</option>
                         <option value="3">Evento colegio</option>
@@ -67,7 +62,7 @@
                 
                 <div class="form-group">
                     <label for="fechaEvento">Fecha del Evento:</label>
-                    <input type="date" id="fechaEvento" name="fechaEvento" required>
+                    <input type="date" id="fechaEvento" name="fechaEvento">
                 </div>
                 
                 <div class="form-group">
@@ -104,9 +99,6 @@
         
         <div id="mensaje"></div>
     </div>    
-    <script>
-        const { ipcRenderer } = require('electron');
-    </script>
     <script src="js/renderer-eventos.js"></script>
 </body>
 </html>

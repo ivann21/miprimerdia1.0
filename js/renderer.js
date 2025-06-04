@@ -1,6 +1,7 @@
 // Variable para controlar si estamos editando
 let modoEdicion = false;
 let idCajaEdicion = null;
+let datosCajaParaCargar = null; // Nueva variable para almacenar datos pendientes
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('cajaForm');
@@ -14,9 +15,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Recibir datos para edición
     ipcRenderer.on('cargar-datos-caja', (event, datos) => {
         if (datos) {
+            console.log('Recibidos datos para edición de caja:', datos);
+            datosCajaParaCargar = datos; // Guardar datos para cargar después
+            
             modoEdicion = true;
             idCajaEdicion = datos.id;
-              // Cliente
+            
+            // Cliente - cargar inmediatamente
             document.getElementById('nombreCliente').value = datos.cliente.nombre_apellidos || '';
             document.getElementById('emailCliente').value = datos.cliente.email || '';
             document.getElementById('telefonoCliente').value = datos.cliente.telefono || '';
@@ -27,9 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Almacenar IDs necesarios para la edición
             document.getElementById('nombreCliente').dataset.idCliente = datos.cliente.id;
             document.getElementById('nombreBebe').dataset.idBebe = datos.bebe.id;
-            document.getElementById('tipoCaja').dataset.idServicio = datos.caja.id_servicio;
             
-            // Bebé
+            // Bebé - cargar inmediatamente
             document.getElementById('nombreBebe').value = datos.bebe.nombre || '';
             document.getElementById('apellidosBebe').value = datos.bebe.apellidos || '';
             document.getElementById('fechaNacimientoBebe').value = datos.bebe.fecha_nacimiento ? formatDate(datos.bebe.fecha_nacimiento) : '';
@@ -38,15 +42,19 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('codigoPostalFamiliar').value = datos.bebe.codigo_postal_familiar || '';
             document.getElementById('ciudadFamiliar').value = datos.bebe.ciudad_familiar || '';
             
-            // Caja
-            document.getElementById('tipoCaja').value = datos.caja.id_tipo_caja || '';
+            // Caja (excepto tipo de caja)
             document.getElementById('numeroCaja').value = datos.caja.numero_caja || '';
             document.getElementById('cantidadCajas').value = datos.caja.total_cajas_contratadas || 1;
             document.getElementById('personalizacion').value = datos.caja.personalizacion || '';
             document.getElementById('fechaEntrega').value = datos.caja.fecha_entrega ? formatDate(datos.caja.fecha_entrega) : '';
+            document.getElementById('estadoCaja').value = datos.caja.estado || 'pendiente';
+            document.getElementById('precioFinal').value = datos.caja.precio_final || '0.00';
             
             // Cambiar texto del botón
             btnGuardar.textContent = 'Actualizar Caja';
+            
+            // Intentar cargar el tipo de caja si las opciones ya están disponibles
+            cargarTipoCajaSiDisponible();
         }
     });
 
@@ -130,7 +138,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 numero_caja: document.getElementById('numeroCaja').value,
                 total_cajas_contratadas: parseInt(document.getElementById('cantidadCajas').value),
                 personalizacion: document.getElementById('personalizacion').value,
-                fecha_entrega: document.getElementById('fechaEntrega').value
+                fecha_entrega: document.getElementById('fechaEntrega').value,
+                estado: document.getElementById('estadoCaja').value,
+                precio_final: parseFloat(document.getElementById('precioFinal').value) || 0
             }
         };
     }
@@ -161,17 +171,45 @@ document.addEventListener('DOMContentLoaded', () => {
     ipcRenderer.on('tipos-caja-obtenidos', (event, tiposCaja) => {
         const select = document.getElementById('tipoCaja');
         
+        console.log('Tipos de caja recibidos:', tiposCaja);
+        
         // Limpiar opciones excepto la primera
         while (select.options.length > 1) {
             select.remove(1);
         }
         
-        // Agregar opciones desde la base de datos
+        // Agregar opciones desde la base de datos (solo nombre, sin precio)
         tiposCaja.forEach(tipo => {
             const option = document.createElement('option');
             option.value = tipo.id;
-            option.textContent = `${tipo.nombre} (${tipo.precio}€)`;
+            option.textContent = tipo.nombre;
             select.appendChild(option);
         });
+        
+        // Si tenemos datos pendientes de cargar, cargar el tipo de caja ahora
+        cargarTipoCajaSiDisponible();
     });
+    
+    function cargarTipoCajaSiDisponible() {
+        const select = document.getElementById('tipoCaja');
+        
+        // Verificar si tenemos datos pendientes y si las opciones están cargadas
+        if (datosCajaParaCargar && select.options.length > 1) {
+            console.log('Estableciendo tipo de caja:', datosCajaParaCargar.caja.id_tipo_caja);
+            select.value = datosCajaParaCargar.caja.id_tipo_caja || '';
+            
+            // Almacenar ID de servicio para la edición
+            document.getElementById('tipoCaja').dataset.idServicio = datosCajaParaCargar.caja.id_servicio;
+            
+            // Verificar si se estableció correctamente
+            if (select.value !== String(datosCajaParaCargar.caja.id_tipo_caja)) {
+                console.warn('No se pudo establecer el tipo de caja. Valor esperado:', datosCajaParaCargar.caja.id_tipo_caja, 'Opciones disponibles:', Array.from(select.options).map(o => o.value));
+            } else {
+                console.log('Tipo de caja establecido correctamente');
+            }
+            
+            // Limpiar datos pendientes
+            datosCajaParaCargar = null;
+        }
+    }
 });

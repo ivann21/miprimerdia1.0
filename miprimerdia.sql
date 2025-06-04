@@ -14,7 +14,7 @@ CREATE TABLE Clientes (
     direccion TEXT,
     codigo_postal VARCHAR(10),
     ciudad VARCHAR(50),
-    fecha_nacimiento DATE,
+    fecha_nacimiento DATE NULL,
     fecha_de_alta DATE DEFAULT (CURRENT_DATE),
     fecha_ultima_contratacion DATE,
     CONSTRAINT chk_contacto CHECK (email IS NOT NULL OR telefono IS NOT NULL)
@@ -99,7 +99,8 @@ INSERT INTO TiposServicio (nombre, descripcion, tiene_tabla_especifica) VALUES
 ('Evento colegio', 'Eventos educativos y escolares', TRUE),
 ('Evento familiar', 'Celebraciones familiares', TRUE),
 ('Alquiler', 'Alquiler de equipos o espacios', FALSE),
-('Proveedor', 'Servicios de proveedores externos', FALSE);
+('Proveedor', 'Servicios de proveedores externos', FALSE),
+('Otros', 'Otros servicios personalizados', FALSE);
 
 INSERT INTO TiposCaja (nombre, descripcion, precio) VALUES
 ('Caja Clásica', 'Incluye productos esenciales para el recién nacido', 90.00),
@@ -107,7 +108,8 @@ INSERT INTO TiposCaja (nombre, descripcion, precio) VALUES
 ('Caja Sol y Luna', 'Incluye productos esenciales para el recién nacido', 145.00),
 ('Caja Candilejas', 'Productos premium, personalización y artículos exclusivos', 175.00),
 ('Caja Mágica', 'Incluye productos esenciales para el recién nacido', 195.00),
-('Caja Fashion', 'Incluye productos esenciales para el recién nacido', 245.00);
+('Caja Fashion', 'Incluye productos esenciales para el recién nacido', 245.00),
+('Otros', 'Otros servicios o cajas personalizadas', 0.00);
 
 -- 5. Vista (se crea al final)
 

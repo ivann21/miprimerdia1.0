@@ -106,6 +106,70 @@
             font-weight: bold;
             color: #2c3e50;
         }
+        
+        .btn-detalles {
+            background-color: #9b59b6;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 800px;
+            border-radius: 5px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close:hover {
+            color: black;
+        }
+        
+        .detalle-seccion {
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+        }
+        
+        .detalle-titulo {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        
+        .detalle-campo {
+            margin-bottom: 8px;
+        }
+        
+        .detalle-label {
+            font-weight: bold;
+            color: #34495e;
+        }
     </style>
 </head>
 <body>
@@ -184,7 +248,10 @@
         
         <div class="acciones-tabla">
             <div class="total-registros" id="totalRegistros">Total: 0 eventos</div>
-            <button id="btnExportar" class="btn-accion btn-exportar">Exportar a CSV</button>
+            <div>
+                <button id="btnRecargar" class="btn-accion" style="background-color: #f39c12; margin-right: 10px;">🔄 Recargar</button>
+                <button id="btnExportar" class="btn-accion btn-exportar">Exportar a CSV</button>
+            </div>
         </div>
         
         <table id="tablaEventos">
@@ -207,6 +274,15 @@
         
         <div id="mensaje"></div>
         
+        <!-- Modal para mostrar detalles -->
+        <div id="modalDetalles" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Detalles del Evento</h2>
+                <div id="contenidoDetalles"></div>
+            </div>
+        </div>
+        
         <button id="btnVolver" class="btn-volver">Volver al Menú</button>
     </div>
     
@@ -223,6 +299,10 @@
             document.getElementById('btnFiltrar').addEventListener('click', cargarEventos);
             document.getElementById('btnLimpiar').addEventListener('click', limpiarFiltros);
             
+            // Filtrado automático al cambiar filtros principales
+            document.getElementById('filtroTipoEvento').addEventListener('change', cargarEventos);
+            document.getElementById('filtroEstado').addEventListener('change', cargarEventos);
+            
             // Evento para mostrar/ocultar filtros avanzados
             document.getElementById('btnFiltrosAvanzados').addEventListener('click', toggleFiltrosAvanzados);
             
@@ -233,6 +313,12 @@
             
             // Evento para exportar a Excel
             document.getElementById('btnExportar').addEventListener('click', exportarCSV);
+            
+            // Evento para recargar datos
+            document.getElementById('btnRecargar').addEventListener('click', () => {
+                mostrarMensaje('Recargando datos...', 'info');
+                cargarEventos();
+            });
             
             // Función para exportar a CSV
             function exportarCSV() {
@@ -343,22 +429,24 @@
                 const tbody = document.getElementById('bodyEventos');
                 tbody.innerHTML = '';
                 
+                // Filtrar solo eventos que no sean "Caja"
+                const soloEventos = eventos.filter(ev => ev.tipo_servicio && ev.tipo_servicio.toLowerCase() !== 'caja');
+                
                 // Guardar datos en localStorage para exportación
-                localStorage.setItem('eventos', JSON.stringify(eventos));
+                localStorage.setItem('eventos', JSON.stringify(soloEventos));
                 
                 // Actualizar total de registros
-                document.getElementById('totalRegistros').textContent = `Total: ${eventos.length} eventos`;
+                document.getElementById('totalRegistros').textContent = `Total: ${soloEventos.length} eventos`;
                 
-                if (eventos.length === 0) {
+                if (soloEventos.length === 0) {
                     const tr = document.createElement('tr');
                     tr.innerHTML = '<td colspan="8" style="text-align:center">No se encontraron eventos</td>';
                     tbody.appendChild(tr);
                     return;
                 }
                 
-                eventos.forEach(evento => {
+                soloEventos.forEach(evento => {
                     const tr = document.createElement('tr');
-                    
                     // Formatear fechas
                     const fechaContratacion = evento.fecha_contratacion ? new Date(evento.fecha_contratacion).toLocaleDateString() : '-';
                     const fechaEvento = evento.fecha_evento ? new Date(evento.fecha_evento).toLocaleDateString() : '-';
@@ -372,33 +460,59 @@
                         <td>${traducirEstado(evento.estado)}</td>
                         <td>${evento.precio_total}€</td>
                         <td class="acciones">
-                            <button class="btn-accion btn-editar" data-id="${evento.id}">Editar</button>
-                            <button class="btn-accion btn-eliminar" data-id="${evento.id}">Eliminar</button>
+                            <button class="btn-accion btn-detalles" data-id="${evento.id}" data-tipo="${evento.tipo_servicio}">Ver</button>
+                            <button class="btn-accion btn-editar" data-id="${evento.id}" data-tipo="${evento.tipo_servicio}">Editar</button>
+                            <button class="btn-accion btn-eliminar" data-id="${evento.id}" data-tipo="${evento.tipo_servicio}">Eliminar</button>
                         </td>
                     `;
-                    
                     tbody.appendChild(tr);
                 });
                 
-                // Actualizar total de registros
-                document.getElementById('totalRegistros').textContent = `Total: ${eventos.length} eventos`;
-                
                 // Agregar eventos a los botones de acción
+                document.querySelectorAll('.btn-detalles').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const id = e.target.getAttribute('data-id');
+                        const tipo = e.target.getAttribute('data-tipo');
+                        if (tipo && tipo.toLowerCase() !== 'caja') {
+                            ipcRenderer.send('ver-detalles-evento', id);
+                        }
+                    });
+                });
+                
                 document.querySelectorAll('.btn-editar').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         const id = e.target.getAttribute('data-id');
-                        ipcRenderer.send('editar-evento', id);
+                        const tipo = e.target.getAttribute('data-tipo');
+                        if (tipo && tipo.toLowerCase() !== 'caja') {
+                            ipcRenderer.send('editar-evento', id);
+                        } else {
+                            mostrarMensaje('No se puede editar una caja desde la lista de eventos.', 'error');
+                        }
                     });
                 });
                 
                 document.querySelectorAll('.btn-eliminar').forEach(btn => {
                     btn.addEventListener('click', (e) => {
-                        if (confirm('¿Está seguro que desea eliminar este evento?')) {
-                            const id = e.target.getAttribute('data-id');
-                            ipcRenderer.send('eliminar-evento', id);
+                        const id = e.target.getAttribute('data-id');
+                        const tipo = e.target.getAttribute('data-tipo');
+                        if (tipo && tipo.toLowerCase() !== 'caja') {
+                            if (confirm('¿Está seguro que desea eliminar este evento?')) {
+                                ipcRenderer.send('eliminar-evento', id);
+                            }
+                        } else {
+                            mostrarMensaje('No se puede eliminar una caja desde la lista de eventos.', 'error');
                         }
                     });
                 });
+            });
+            
+            // Recibir detalles del evento
+            ipcRenderer.on('detalles-evento-cargados', (event, datos) => {
+                if (datos && !datos.error && !datos.notFound) {
+                    mostrarDetallesEvento(datos);
+                } else {
+                    mostrarMensaje('Error al cargar los detalles del evento', 'error');
+                }
             });
             
             ipcRenderer.on('evento-eliminado', (event, resultado) => {
@@ -429,6 +543,49 @@
                 setTimeout(() => {
                     mensajeDiv.style.display = 'none';
                 }, 5000);
+            }
+            
+            function mostrarDetallesEvento(datos) {
+                const contenido = document.getElementById('contenidoDetalles');
+                
+                contenido.innerHTML = `
+                    <div class="detalle-seccion">
+                        <div class="detalle-titulo">Información del Cliente</div>
+                        <div class="detalle-campo"><span class="detalle-label">Nombre:</span> ${datos.cliente.nombre_apellidos || 'No especificado'}</div>
+                        <div class="detalle-campo"><span class="detalle-label">Email:</span> ${datos.cliente.email || 'No especificado'}</div>
+                        <div class="detalle-campo"><span class="detalle-label">Teléfono:</span> ${datos.cliente.telefono || 'No especificado'}</div>
+                        <div class="detalle-campo"><span class="detalle-label">Dirección:</span> ${datos.cliente.direccion || 'No especificado'}</div>
+                        <div class="detalle-campo"><span class="detalle-label">Código Postal:</span> ${datos.cliente.codigo_postal || 'No especificado'}</div>
+                        <div class="detalle-campo"><span class="detalle-label">Ciudad:</span> ${datos.cliente.ciudad || 'No especificado'}</div>
+                    </div>
+                    
+                    <div class="detalle-seccion">
+                        <div class="detalle-titulo">Información del Evento</div>
+                        <div class="detalle-campo"><span class="detalle-label">ID:</span> ${datos.servicio.id}</div>
+                        <div class="detalle-campo"><span class="detalle-label">Fecha de Contratación:</span> ${datos.servicio.fecha_contratacion ? new Date(datos.servicio.fecha_contratacion).toLocaleDateString() : 'No especificado'}</div>
+                        <div class="detalle-campo"><span class="detalle-label">Fecha del Evento:</span> ${datos.servicio.fecha_evento ? new Date(datos.servicio.fecha_evento).toLocaleDateString() : 'No especificado'}</div>
+                        <div class="detalle-campo"><span class="detalle-label">Estado:</span> ${traducirEstado(datos.servicio.estado)}</div>
+                        <div class="detalle-campo"><span class="detalle-label">Precio Total:</span> ${datos.servicio.precio_total}€</div>
+                        <div class="detalle-campo"><span class="detalle-label">Notas del Cliente:</span> ${datos.servicio.notas_cliente || 'Sin notas'}</div>
+                        <div class="detalle-campo"><span class="detalle-label">Observaciones Internas:</span> ${datos.servicio.observaciones_internas || 'Sin observaciones'}</div>
+                    </div>
+                `;
+                
+                modal.style.display = 'block';
+            }
+            
+            // Configurar modal
+            const modal = document.getElementById('modalDetalles');
+            const span = document.getElementsByClassName('close')[0];
+            
+            span.onclick = function() {
+                modal.style.display = 'none';
+            }
+            
+            window.onclick = function(event) {
+                if (event.target == modal) {
+                    modal.style.display = 'none';
+                }
             }
         });
     </script>

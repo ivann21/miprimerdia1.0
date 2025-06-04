@@ -68,6 +68,7 @@ function createEventoWindow() {
 
 function createListaCajasWindow() {
     listaCajasWindow = new BrowserWindow({
+        parent: mainWindow,
         width: 1200,
         height: 800,
         webPreferences: {
@@ -86,6 +87,7 @@ function createListaCajasWindow() {
 
 function createListaEventosWindow() {
     listaEventosWindow = new BrowserWindow({
+        parent: mainWindow,
         width: 1200,
         height: 800,
         webPreferences: {
@@ -167,7 +169,9 @@ ipcMain.on('obtener-tipos-evento', async (event) => {
 
 ipcMain.on('listar-cajas', async (event, filtros) => {
     try {
+        console.log('Filtrando cajas con:', filtros);
         const cajas = await database.listarCajas(filtros);
+        console.log(`Encontradas ${cajas.length} cajas`);
         event.reply('cajas-listadas', cajas);
     } catch (error) {
         console.error('Error al listar cajas:', error);
@@ -177,7 +181,9 @@ ipcMain.on('listar-cajas', async (event, filtros) => {
 
 ipcMain.on('listar-eventos', async (event, filtros) => {
     try {
+        console.log('Filtrando eventos con:', filtros);
         const eventos = await database.listarEventos(filtros);
+        console.log(`Encontrados ${eventos.length} eventos`);
         event.reply('eventos-listados', eventos);
     } catch (error) {
         console.error('Error al listar eventos:', error);
@@ -188,12 +194,16 @@ ipcMain.on('listar-eventos', async (event, filtros) => {
 ipcMain.on('abrir-listado-cajas', () => {
     if (listaCajasWindow === null || listaCajasWindow === undefined) {
         createListaCajasWindow();
+    } else {
+        listaCajasWindow.focus();
     }
 });
 
 ipcMain.on('abrir-listado-eventos', () => {
     if (listaEventosWindow === null || listaEventosWindow === undefined) {
         createListaEventosWindow();
+    } else {
+        listaEventosWindow.focus();
     }
 });
 
@@ -204,8 +214,9 @@ ipcMain.on('volver-menu', () => {
     if (listaEventosWindow) {
         listaEventosWindow.close();
     }
-    if (mainWindow === null) {
-        createWindow();
+    // Solo enfocar la ventana principal si existe, no crearla
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.focus();
     }
 });
 
@@ -230,36 +241,62 @@ ipcMain.on('eliminar-evento', async (event, id) => {
 ipcMain.on('editar-caja', async (event, id) => {
     try {
         const datosCaja = await database.obtenerCaja(id);
+        
+        // Verificar si se encontró la caja y no es un error
+        if (datosCaja.notFound || datosCaja.error) {
+            const mensaje = datosCaja.notFound 
+                ? 'El registro seleccionado no es una caja válida o no existe' 
+                : `Error al acceder a la base de datos: ${datosCaja.message}`;
+            console.log('Error al editar caja:', mensaje);
+            event.reply('caja-eliminada', { success: false, message: mensaje });
+            return;
+        }
+        
         if (cajaWindow === null || cajaWindow === undefined) {
             createCajaWindow();
             // Esperar a que la ventana esté lista para recibir datos
-            cajaWindow.webContents.on('did-finish-load', () => {
+            cajaWindow.webContents.once('did-finish-load', () => {
                 cajaWindow.webContents.send('cargar-datos-caja', datosCaja);
             });
         } else {
             cajaWindow.webContents.send('cargar-datos-caja', datosCaja);
+            cajaWindow.focus();
         }
     } catch (error) {
         console.error('Error al editar caja:', error);
-        event.reply('caja-eliminada', { success: false, message: 'Error al cargar datos: ' + error.message });
+        event.reply('caja-eliminada', { success: false, message: 'Error de conexión con la base de datos: ' + error.message });
     }
 });
 
 ipcMain.on('editar-evento', async (event, id) => {
     try {
+        console.log('Solicitando edición de evento ID:', id);
         const datosEvento = await database.obtenerEvento(id);
+        
+        console.log('Datos del evento obtenidos:', datosEvento);
+        
+        // Verificar si se encontró el evento y no es un error
+        if (!datosEvento || (datosEvento.notFound || datosEvento.error)) {
+            const mensaje = 'El registro seleccionado no es un evento válido o no existe';
+            console.log('Error al editar evento:', mensaje);
+            event.reply('evento-eliminado', { exito: false, mensaje: mensaje });
+            return;
+        }
+        
         if (eventoWindow === null || eventoWindow === undefined) {
             createEventoWindow();
             // Esperar a que la ventana esté lista para recibir datos
-            eventoWindow.webContents.on('did-finish-load', () => {
+            eventoWindow.webContents.once('did-finish-load', () => {
+                console.log('Enviando datos a la ventana de evento');
                 eventoWindow.webContents.send('cargar-datos-evento', datosEvento);
             });
         } else {
             eventoWindow.webContents.send('cargar-datos-evento', datosEvento);
+            eventoWindow.focus();
         }
     } catch (error) {
         console.error('Error al editar evento:', error);
-        event.reply('evento-eliminado', { exito: false, mensaje: 'Error al cargar datos: ' + error.message });
+        event.reply('evento-eliminado', { exito: false, mensaje: 'Error de conexión con la base de datos: ' + error.message });
     }
 });
 
@@ -281,6 +318,26 @@ ipcMain.on('actualizar-evento', async (event, datos) => {
     }
 });
 
+ipcMain.on('ver-detalles-caja', async (event, id) => {
+    try {
+        const datosCaja = await database.obtenerCaja(id);
+        event.reply('detalles-caja-cargados', datosCaja);
+    } catch (error) {
+        console.error('Error al obtener detalles de caja:', error);
+        event.reply('detalles-caja-cargados', { error: true, message: error.message });
+    }
+});
+
+ipcMain.on('ver-detalles-evento', async (event, id) => {
+    try {
+        const datosEvento = await database.obtenerEvento(id);
+        event.reply('detalles-evento-cargados', datosEvento);
+    } catch (error) {
+        console.error('Error al obtener detalles de evento:', error);
+        event.reply('detalles-evento-cargados', { error: true, message: error.message });
+    }
+});
+
 app.on('ready', createWindow);
 
 app.on('window-all-closed', function () {
@@ -288,5 +345,8 @@ app.on('window-all-closed', function () {
 });
 
 app.on('activate', function () {
-    if (mainWindow === null) createWindow();
+    // Solo crear ventana principal si no hay ninguna ventana abierta
+    if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+    }
 });

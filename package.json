@@ -4,12 +4,30 @@
   "main": "js/main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "electron ."
+    "start": "electron .",
+    "build-portable": "electron-builder --win --portable",
+    "build-dir": "electron-builder --win --dir"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
+  "build": {
+    "appId": "com.miprimerdia.app",
+    "productName": "Mi Primer Día",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "icon": "assets/icon.ico"
+    },
+    "linux": {
+      "icon": "assets/icon.png"
+    },
+    "mac": {
+      "icon": "assets/icon.icns"
+    }
+  },
   "devDependencies": {
     "electron": "^36.1.0"
   },

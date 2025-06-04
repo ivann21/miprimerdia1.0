@@ -3,9 +3,9 @@ const mysql = require('mysql2/promise');
 class Database {
     constructor() {
         this.config = {
-            host: 'localhost',
-            user: 'root', // Cambiar por tu usuario de MySQL
-            password: '', // Cambiar por tu contraseña de MySQL
+            host: '192.168.1.152',
+            user: 'admin', // Cambiar por tu usuario de MySQL
+            password: '1234', // Cambiar por tu contraseña de MySQL
             database: 'miprimerdia'
         };
         this.connection = null;
@@ -80,12 +80,13 @@ class Database {
             
             const idServicio = servicioResult.insertId;
             
-            // 5. Insertar caja
+            // 5. Insertar caja con precio final proporcionado o calculado
+            const precioFinal = datos.caja.precio_final > 0 ? datos.caja.precio_final : null;
             const [cajaResult] = await conn.execute(
                 `INSERT INTO Cajas 
                 (id_servicio, id_tipo_caja, id_bebe, numero_caja, total_cajas_contratadas, personalizacion, fecha_entrega, estado, precio_final) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'pendiente', 
-                (SELECT precio FROM TiposCaja WHERE id = ?) * ?)`,
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 
+                COALESCE(?, (SELECT precio FROM TiposCaja WHERE id = ?) * ?))`,
                 [
                     idServicio,
                     datos.caja.id_tipo_caja,
@@ -94,6 +95,8 @@ class Database {
                     datos.caja.total_cajas_contratadas,
                     datos.caja.personalizacion,
                     datos.caja.fecha_entrega,
+                    datos.caja.estado,
+                    precioFinal,
                     datos.caja.id_tipo_caja,
                     datos.caja.total_cajas_contratadas
                 ]
@@ -127,7 +130,7 @@ class Database {
                 await conn.execute(
                     `UPDATE Clientes 
                     SET nombre_apellidos = ?, email = ?, telefono = ?, direccion = ?, 
-                    codigo_postal = ?, ciudad = ?, fecha_nacimiento = ?
+                    codigo_postal = ?, ciudad = ?
                     WHERE id = ?`,
                     [
                         datos.cliente.nombre_apellidos,
@@ -136,7 +139,6 @@ class Database {
                         datos.cliente.direccion,
                         datos.cliente.codigo_postal,
                         datos.cliente.ciudad,
-                        datos.cliente.fecha_nacimiento,
                         datos.cliente.id
                     ]
                 );
@@ -144,16 +146,15 @@ class Database {
             } else {
                 const [clienteResult] = await conn.execute(
                     `INSERT INTO Clientes 
-                    (nombre_apellidos, email, telefono, direccion, codigo_postal, ciudad, fecha_nacimiento, fecha_de_alta) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE())`,
+                    (nombre_apellidos, email, telefono, direccion, codigo_postal, ciudad, fecha_de_alta) 
+                    VALUES (?, ?, ?, ?, ?, ?, CURDATE())`,
                     [
                         datos.cliente.nombre_apellidos,
                         datos.cliente.email,
                         datos.cliente.telefono,
                         datos.cliente.direccion,
                         datos.cliente.codigo_postal,
-                        datos.cliente.ciudad,
-                        datos.cliente.fecha_nacimiento
+                        datos.cliente.ciudad
                     ]
                 );
                 idCliente = clienteResult.insertId;
@@ -168,7 +169,7 @@ class Database {
                     WHERE id = ?`,
                     [
                         datos.servicio.id_tipo_servicio,
-                        datos.servicio.fecha_evento,
+                        datos.servicio.fecha_evento || null,
                         datos.servicio.estado,
                         datos.servicio.notas_cliente,
                         datos.servicio.observaciones_internas,
@@ -184,7 +185,7 @@ class Database {
                     [
                         idCliente,
                         datos.servicio.id_tipo_servicio,
-                        datos.servicio.fecha_evento,
+                        datos.servicio.fecha_evento || null,
                         datos.servicio.estado,
                         datos.servicio.notas_cliente,
                         datos.servicio.observaciones_internas,
@@ -238,7 +239,8 @@ class Database {
     }
 
     async listarCajas(filtros = {}) {
-        const conn = await this.connect();        try {
+        const conn = await this.connect();
+        try {
             let query = `
                 SELECT 
                     c.id,
@@ -399,7 +401,10 @@ class Database {
             query += " ORDER BY s.fecha_contratacion DESC";
             
             const [rows] = await conn.execute(query, params);
-            return rows;
+
+            // Filtro extra por si acaso se cuela alguna caja
+            const soloEventos = rows.filter(ev => ev.tipo_servicio && ev.tipo_servicio.toLowerCase() !== 'caja');
+            return soloEventos;
         } catch (error) {
             console.error('Error al listar eventos:', error);
             throw error;
@@ -503,7 +508,8 @@ class Database {
             const [rows] = await conn.execute(query, [id]);
             
             if (rows.length === 0) {
-                throw new Error('No se encontró la caja');
+                // No lanzar excepción, devolver objeto indicando no encontrado
+                return { notFound: true, message: 'No se encontró la caja' };
             }
             
             // Formato para devolver los datos en la estructura esperada por el formulario
@@ -543,7 +549,8 @@ class Database {
             };
         } catch (error) {
             console.error('Error al obtener caja:', error);
-            throw error;
+            // Devolver error en vez de lanzar
+            return { error: true, message: error.message };
         }
     }
 
@@ -566,8 +573,7 @@ class Database {
                     cl.telefono,
                     cl.direccion,
                     cl.codigo_postal,
-                    cl.ciudad,
-                    cl.fecha_nacimiento
+                    cl.ciudad
                 FROM 
                     Servicios s
                 JOIN 
@@ -594,8 +600,7 @@ class Database {
                     telefono: evento.telefono,
                     direccion: evento.direccion,
                     codigo_postal: evento.codigo_postal,
-                    ciudad: evento.ciudad,
-                    fecha_nacimiento: evento.fecha_nacimiento
+                    ciudad: evento.ciudad
                 },
                 servicio: {
                     id: evento.id,
@@ -664,12 +669,13 @@ class Database {
                 ]
             );
             
-            // 4. Actualizar caja
+            // 4. Actualizar caja con precio final proporcionado o calculado
+            const precioFinal = datos.caja.precio_final > 0 ? datos.caja.precio_final : null;
             await conn.execute(
                 `UPDATE Cajas 
                 SET id_tipo_caja = ?, numero_caja = ?, total_cajas_contratadas = ?, 
-                personalizacion = ?, fecha_entrega = ?, 
-                precio_final = (SELECT precio FROM TiposCaja WHERE id = ?) * ?
+                personalizacion = ?, fecha_entrega = ?, estado = ?,
+                precio_final = COALESCE(?, (SELECT precio FROM TiposCaja WHERE id = ?) * ?)
                 WHERE id = ?`,
                 [
                     datos.caja.id_tipo_caja,
@@ -677,6 +683,8 @@ class Database {
                     datos.caja.total_cajas_contratadas,
                     datos.caja.personalizacion,
                     datos.caja.fecha_entrega,
+                    datos.caja.estado,
+                    precioFinal,
                     datos.caja.id_tipo_caja,
                     datos.caja.total_cajas_contratadas,
                     datos.caja.id
@@ -709,7 +717,7 @@ class Database {
             await conn.execute(
                 `UPDATE Clientes 
                 SET nombre_apellidos = ?, email = ?, telefono = ?, direccion = ?, 
-                codigo_postal = ?, ciudad = ?, fecha_nacimiento = ?
+                codigo_postal = ?, ciudad = ?
                 WHERE id = ?`,
                 [
                     datos.cliente.nombre_apellidos,
@@ -718,7 +726,6 @@ class Database {
                     datos.cliente.direccion,
                     datos.cliente.codigo_postal,
                     datos.cliente.ciudad,
-                    datos.cliente.fecha_nacimiento,
                     datos.cliente.id
                 ]
             );
@@ -731,7 +738,7 @@ class Database {
                 WHERE id = ?`,
                 [
                     datos.servicio.id_tipo_servicio,
-                    datos.servicio.fecha_evento,
+                    datos.servicio.fecha_evento || null,
                     datos.servicio.estado,
                     datos.servicio.notas_cliente,
                     datos.servicio.observaciones_internas,
