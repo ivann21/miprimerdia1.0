@@ -322,46 +322,103 @@
             
             // Función para exportar a CSV
             function exportarCSV() {
-                const eventos = JSON.parse(localStorage.getItem('eventos') || '[]');
-                if (eventos.length === 0) {
-                    mostrarMensaje('No hay datos para exportar', 'error');
-                    return;
-                }
-                
-                let csv = 'ID,Cliente,Tipo Evento,Fecha Contratación,Fecha Evento,Estado,Precio\n';
-                
-                eventos.forEach(evento => {
-                    const fechaContratacion = evento.fecha_contratacion ? new Date(evento.fecha_contratacion).toLocaleDateString() : '-';
-                    const fechaEvento = evento.fecha_evento ? new Date(evento.fecha_evento).toLocaleDateString() : '-';
+                try {
+                    const eventos = JSON.parse(localStorage.getItem('eventos') || '[]');
+                    if (eventos.length === 0) {
+                        mostrarMensaje('No hay datos para exportar', 'error');
+                        return;
+                    }
                     
-                    const fila = [
-                        `"${evento.id}"`,
-                        `"${evento.nombre_cliente}"`,
-                        `"${evento.tipo_servicio}"`,
-                        `"${fechaContratacion}"`,
-                        `"${fechaEvento}"`,
-                        `"${traducirEstado(evento.estado)}"`,
-                        `"${evento.precio_total}€"`
-                    ];
-                    csv += fila.join(',') + '\n';
-                });
-                
-                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-                const url = URL.createObjectURL(blob);
-                
-                link.setAttribute('href', url);
-                link.setAttribute('download', `eventos_${new Date().toISOString().split('T')[0]}.csv`);
-                link.style.visibility = 'hidden';
-                
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                mostrarMensaje('Datos exportados correctamente', 'exito');
-            }
-            
-            function toggleFiltrosAvanzados() {
+                    // Indicador de exportación
+                    const btnExportar = document.getElementById('btnExportar');
+                    const textoOriginal = btnExportar.textContent;
+                    btnExportar.textContent = 'Exportando...';
+                    btnExportar.disabled = true;
+                    
+                    try {
+                        let csv = 'ID,Cliente,Tipo Evento,Fecha Contratación,Fecha Evento,Estado,Precio\n';
+                        
+                        eventos.forEach(evento => {
+                            try {
+                                // Sanitizar datos
+                                const id = evento.id || '';
+                                const nombre_cliente = evento.nombre_cliente || 'Sin nombre';
+                                const tipo_servicio = evento.tipo_servicio || 'Sin especificar';
+                                const estado = evento.estado || 'pendiente';
+                                const precio_total = isNaN(parseFloat(evento.precio_total)) ? 0 : parseFloat(evento.precio_total);
+                                
+                                // Formatear fechas con manejo de errores
+                                let fechaContratacion = '-';
+                                let fechaEvento = '-';
+                                
+                                try {
+                                    if (evento.fecha_contratacion) {
+                                        fechaContratacion = new Date(evento.fecha_contratacion).toLocaleDateString();
+                                    }
+                                } catch (e) {
+                                    console.error('Error al formatear fecha de contratación:', e);
+                                    fechaContratacion = 'Fecha inválida';
+                                }
+                                
+                                try {
+                                    if (evento.fecha_evento) {
+                                        fechaEvento = new Date(evento.fecha_evento).toLocaleDateString();
+                                    }
+                                } catch (e) {
+                                    console.error('Error al formatear fecha del evento:', e);
+                                    fechaEvento = 'Fecha inválida';
+                                }
+                                
+                                // Escapar comillas en los textos para evitar problemas en el CSV
+                                const escaparCSV = (texto) => {
+                                    if (texto === null || texto === undefined) return '';
+                                    return `"${String(texto).replace(/"/g, '""')}"`;
+                                };
+                                
+                                const fila = [
+                                    escaparCSV(id),
+                                    escaparCSV(nombre_cliente),
+                                    escaparCSV(tipo_servicio),
+                                    escaparCSV(fechaContratacion),
+                                    escaparCSV(fechaEvento),
+                                    escaparCSV(traducirEstado(estado)),
+                                    escaparCSV(`${precio_total.toFixed(2)}€`)
+                                ];
+                                csv += fila.join(',') + '\n';
+                            } catch (error) {
+                                console.error('Error al procesar una fila para CSV:', error);
+                                // Continuar con la siguiente fila
+                            }
+                        });
+                        
+                        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                        const link = document.createElement('a');
+                        const url = URL.createObjectURL(blob);
+                        
+                        link.setAttribute('href', url);
+                        link.setAttribute('download', `eventos_${new Date().toISOString().split('T')[0]}.csv`);
+                        link.style.visibility = 'hidden';
+                        
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                          // Liberar recursos
+                        setTimeout(() => {
+                            URL.revokeObjectURL(url);
+                            btnExportar.textContent = textoOriginal;
+                            btnExportar.disabled = false;
+                            mostrarMensaje('Datos exportados correctamente', 'exito');
+                        }, 500);
+                    } catch (innerError) {
+                        throw innerError; // Relanzar para ser manejado por el try-catch exterior
+                    }
+                } catch (error) {
+                    console.error('Error al exportar CSV:', error);
+                    document.getElementById('btnExportar').textContent = 'Exportar a CSV';
+                    document.getElementById('btnExportar').disabled = false;
+                    mostrarMensaje('Error al exportar: ' + error.message, 'error');
+                }
+            }function toggleFiltrosAvanzados() {
                 const filtrosAvanzados = document.getElementById('filtrosAvanzados');
                 const btnFiltrosAvanzados = document.getElementById('btnFiltrosAvanzados');
                 
@@ -387,22 +444,55 @@
                 document.getElementById('buscarObservaciones').value = '';
                 cargarEventos();
             }
-            
-            function cargarEventos() {
-                const filtros = {
-                    estado: document.getElementById('filtroEstado').value,
-                    tipoEvento: document.getElementById('filtroTipoEvento').value,
-                    busqueda: document.getElementById('buscar').value,
-                    fechaEventoDesde: document.getElementById('fechaEventoDesde').value,
-                    fechaEventoHasta: document.getElementById('fechaEventoHasta').value,
-                    fechaContratacionDesde: document.getElementById('fechaContratacionDesde').value,
-                    fechaContratacionHasta: document.getElementById('fechaContratacionHasta').value,
-                    precioMinimo: document.getElementById('precioMinimo').value,
-                    precioMaximo: document.getElementById('precioMaximo').value,
-                    buscarObservaciones: document.getElementById('buscarObservaciones').value
-                };
-                
-                ipcRenderer.send('listar-eventos', filtros);
+              function cargarEventos() {
+                try {
+                    // Validar fechas y precios antes de enviar
+                    const fechaEventoDesde = document.getElementById('fechaEventoDesde').value;
+                    const fechaEventoHasta = document.getElementById('fechaEventoHasta').value;
+                    const fechaContratacionDesde = document.getElementById('fechaContratacionDesde').value;
+                    const fechaContratacionHasta = document.getElementById('fechaContratacionHasta').value;
+                    
+                    // Validación de rangos de fechas
+                    if (fechaEventoDesde && fechaEventoHasta && fechaEventoDesde > fechaEventoHasta) {
+                        mostrarMensaje('La fecha de inicio del evento debe ser anterior a la fecha de fin', 'error');
+                        return;
+                    }
+                    
+                    if (fechaContratacionDesde && fechaContratacionHasta && fechaContratacionDesde > fechaContratacionHasta) {
+                        mostrarMensaje('La fecha de inicio de contratación debe ser anterior a la fecha de fin', 'error');
+                        return;
+                    }
+                    
+                    // Validación de rangos de precios
+                    const precioMinimo = document.getElementById('precioMinimo').value;
+                    const precioMaximo = document.getElementById('precioMaximo').value;
+                    
+                    if (precioMinimo && precioMaximo && parseFloat(precioMinimo) > parseFloat(precioMaximo)) {
+                        mostrarMensaje('El precio mínimo no puede ser mayor que el precio máximo', 'error');
+                        return;
+                    }
+                    
+                    const filtros = {
+                        estado: document.getElementById('filtroEstado').value,
+                        tipoEvento: document.getElementById('filtroTipoEvento').value,
+                        busqueda: document.getElementById('buscar').value.trim(),
+                        fechaEventoDesde: fechaEventoDesde,
+                        fechaEventoHasta: fechaEventoHasta,
+                        fechaContratacionDesde: fechaContratacionDesde,
+                        fechaContratacionHasta: fechaContratacionHasta,
+                        precioMinimo: precioMinimo,
+                        precioMaximo: precioMaximo,
+                        buscarObservaciones: document.getElementById('buscarObservaciones').value.trim()
+                    };
+                    
+                    // Mostrar indicador de carga
+                    document.getElementById('bodyEventos').innerHTML = '<tr><td colspan="8" style="text-align:center">Cargando...</td></tr>';
+                    
+                    ipcRenderer.send('listar-eventos', filtros);
+                } catch (error) {
+                    console.error('Error al cargar eventos:', error);
+                    mostrarMensaje('Error al cargar eventos: ' + error.message, 'error');
+                }
             }
             
             function cargarTiposEvento() {
@@ -516,11 +606,16 @@
             });
             
             ipcRenderer.on('evento-eliminado', (event, resultado) => {
-                if (resultado.exito) {
-                    mostrarMensaje('Evento eliminado correctamente', 'exito');
-                    cargarEventos();
-                } else {
-                    mostrarMensaje(`Error: ${resultado.mensaje}`, 'error');
+                try {
+                    if (resultado.exito) {
+                        mostrarMensaje('Evento eliminado correctamente', 'exito');
+                        cargarEventos();
+                    } else {
+                        mostrarMensaje(`Error: ${resultado.mensaje}`, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error al procesar eliminación:', error);
+                    mostrarMensaje('Error al procesar la eliminación', 'error');
                 }
             });
             
