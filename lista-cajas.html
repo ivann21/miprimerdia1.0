@@ -522,7 +522,8 @@
                 } catch (error) {
                     console.error('Error al procesar tipos de caja:', error);
                 }
-            });ipcRenderer.on('cajas-listadas', (event, cajas) => {
+            });
+            ipcRenderer.on('cajas-listadas', (event, cajas) => {
                 const tbody = document.getElementById('bodyCajas');
                 tbody.innerHTML = '';
                 
@@ -540,58 +541,64 @@
                     
                     // Actualizar total de registros
                     document.getElementById('totalRegistros').textContent = `Total: ${cajas.length} cajas`;
-                      if (cajas.length === 0) {
+                    
+                    if (cajas.length === 0) {
                         const tr = document.createElement('tr');
                         tr.innerHTML = '<td colspan="8" style="text-align:center">No se encontraron cajas</td>';
                         tbody.appendChild(tr);
                         return;
                     }
                 
-                cajas.forEach(caja => {
-                    const tr = document.createElement('tr');
-                    
-                    // Formatear fecha
-                    const fechaEntrega = caja.fecha_entrega ? new Date(caja.fecha_entrega).toLocaleDateString() : '-';
-                    
-                    tr.innerHTML = `
-                        <td>${caja.numero_caja}</td>
-                        <td>${caja.tipo_caja}</td>
-                        <td>${caja.nombre_bebe} ${caja.apellidos_bebe}</td>
-                        <td>${caja.nombre_cliente}</td>
-                        <td>${fechaEntrega}</td>
-                        <td>${traducirEstado(caja.estado)}</td>
-                        <td>${caja.precio_final}€</td>
-                        <td class="acciones">
-                            <button class="btn-accion btn-detalles" data-id="${caja.id}">Ver</button>
-                            <button class="btn-accion btn-editar" data-id="${caja.id}">Editar</button>
-                            <button class="btn-accion btn-eliminar" data-id="${caja.id}">Eliminar</button>
-                        </td>
-                    `;
-                    
-                    tbody.appendChild(tr);
-                    
-                    // Agregar event listeners específicos para esta fila
-                    const btnDetalles = tr.querySelector('.btn-detalles');
-                    const btnEditar = tr.querySelector('.btn-editar');
-                    const btnEliminar = tr.querySelector('.btn-eliminar');
-                    
-                    btnDetalles.addEventListener('click', (e) => {
-                        const id = e.target.getAttribute('data-id');
-                        ipcRenderer.send('ver-detalles-caja', id);
-                    });
-                    
-                    btnEditar.addEventListener('click', (e) => {
-                        const id = e.target.getAttribute('data-id');
-                        ipcRenderer.send('editar-caja', id);
-                    });
-                    
-                    btnEliminar.addEventListener('click', (e) => {
-                        if (confirm('¿Está seguro que desea eliminar esta caja?')) {
+                    cajas.forEach(caja => {
+                        const tr = document.createElement('tr');
+                        
+                        // Formatear fecha
+                        const fechaEntrega = caja.fecha_entrega ? new Date(caja.fecha_entrega).toLocaleDateString() : '-';
+                        
+                        tr.innerHTML = `
+                            <td>${caja.numero_caja}</td>
+                            <td>${caja.tipo_caja}</td>
+                            <td>${caja.nombre_bebe} ${caja.apellidos_bebe}</td>
+                            <td>${caja.nombre_cliente}</td>
+                            <td>${fechaEntrega}</td>
+                            <td>${traducirEstado(caja.estado)}</td>
+                            <td>${caja.precio_final}€</td>
+                            <td class="acciones">
+                                <button class="btn-accion btn-detalles" data-id="${caja.id}">Ver</button>
+                                <button class="btn-accion btn-editar" data-id="${caja.id}">Editar</button>
+                                <button class="btn-accion btn-eliminar" data-id="${caja.id}">Eliminar</button>
+                            </td>
+                        `;
+                        
+                        tbody.appendChild(tr);
+                        
+                        // Agregar event listeners específicos para esta fila
+                        const btnDetalles = tr.querySelector('.btn-detalles');
+                        const btnEditar = tr.querySelector('.btn-editar');
+                        const btnEliminar = tr.querySelector('.btn-eliminar');
+                        
+                        btnDetalles.addEventListener('click', (e) => {
                             const id = e.target.getAttribute('data-id');
-                            ipcRenderer.send('eliminar-caja', id);
-                        }
+                            ipcRenderer.send('ver-detalles-caja', id);
+                        });
+                        
+                        btnEditar.addEventListener('click', (e) => {
+                            const id = e.target.getAttribute('data-id');
+                            ipcRenderer.send('editar-caja', id);
+                        });
+                        
+                        btnEliminar.addEventListener('click', (e) => {
+                            if (confirm('¿Está seguro que desea eliminar esta caja?')) {
+                                const id = e.target.getAttribute('data-id');
+                                ipcRenderer.send('eliminar-caja', id);
+                            }
+                        });
                     });
-                });
+                } catch (error) {
+                    console.error('Error al procesar las cajas:', error);
+                    mostrarMensaje('Error al cargar las cajas: ' + error.message, 'error');
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center">Error al cargar los datos</td></tr>';
+                }
             });
             
             // Recibir detalles de la caja
