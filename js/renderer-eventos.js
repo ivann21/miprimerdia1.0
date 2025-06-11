@@ -192,8 +192,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Función auxiliar para formatear fechas
     function formatDate(dateString) {
-        const date = new Date(dateString);
-        return date.toISOString().split('T')[0]; // formato YYYY-MM-DD
+        if (!dateString) return '';
+        
+        try {
+            // Si la fecha viene como string en formato YYYY-MM-DD, devolverla tal como está
+            if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                return dateString;
+            }
+            
+            // Si viene como timestamp o string de fecha completa, procesarla
+            const date = new Date(dateString);
+            
+            // Verificar si la fecha es válida
+            if (isNaN(date.getTime())) {
+                return '';
+            }
+            
+            // Formatear manualmente para evitar problemas de zona horaria
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            
+            return `${year}-${month}-${day}`;
+        } catch (error) {
+            console.error('Error al formatear fecha:', error);
+            return '';
+        }
     }
       // Función para mostrar mensajes
     function mostrarMensaje(texto, tipo) {

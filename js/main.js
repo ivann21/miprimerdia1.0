@@ -2,6 +2,50 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const database = require('./database');
 
+// Utilidades para manejo de fechas
+function formatearFechaParaInput(fecha) {
+    if (!fecha) return '';
+    
+    try {
+        // Si la fecha viene como string, crear objeto Date
+        const fechaObj = new Date(fecha);
+        
+        // Verificar si la fecha es válida
+        if (isNaN(fechaObj.getTime())) {
+            return '';
+        }
+        
+        // Formatear como YYYY-MM-DD para inputs de tipo date
+        const year = fechaObj.getFullYear();
+        const month = String(fechaObj.getMonth() + 1).padStart(2, '0');
+        const day = String(fechaObj.getDate()).padStart(2, '0');
+        
+        return `${year}-${month}-${day}`;
+    } catch (error) {
+        console.error('Error al formatear fecha para input:', error);
+        return '';
+    }
+}
+
+function procesarFechasParaBaseDatos(datos) {
+    const datosProcesados = { ...datos };
+    
+    // Procesar fechas que pueden venir de inputs
+    if (datosProcesados.fecha_nacimiento_bebe) {
+        datosProcesados.fecha_nacimiento_bebe = datosProcesados.fecha_nacimiento_bebe || null;
+    }
+    
+    if (datosProcesados.fecha_entrega) {
+        datosProcesados.fecha_entrega = datosProcesados.fecha_entrega || null;
+    }
+    
+    if (datosProcesados.fecha_evento) {
+        datosProcesados.fecha_evento = datosProcesados.fecha_evento || null;
+    }
+    
+    return datosProcesados;
+}
+
 let mainWindow;
 let cajaWindow;
 let eventoWindow;
@@ -123,7 +167,9 @@ ipcMain.on('cerrar-ventana-caja', () => {
 
 ipcMain.on('guardar-caja', async (event, datos) => {
     try {
-        const resultado = await database.guardarCaja(datos);
+        // Procesar fechas antes de enviar a la base de datos
+        const datosConFechasProcesadas = procesarFechasParaBaseDatos(datos);
+        const resultado = await database.guardarCaja(datosConFechasProcesadas);
         event.reply('caja-guardada', resultado);
     } catch (error) {
         event.reply('caja-guardada', { success: false, message: error.message });
@@ -151,7 +197,9 @@ ipcMain.on('cerrar-ventana-evento', () => {
 
 ipcMain.on('guardar-evento', async (event, datos) => {
     try {
-        const resultado = await database.guardarEvento(datos);
+        // Procesar fechas antes de enviar a la base de datos
+        const datosConFechasProcesadas = procesarFechasParaBaseDatos(datos);
+        const resultado = await database.guardarEvento(datosConFechasProcesadas);
         event.reply('evento-guardado', resultado);
     } catch (error) {
         event.reply('evento-guardado', { exito: false, mensaje: error.message });
@@ -263,6 +311,15 @@ ipcMain.on('editar-caja', async (event, id) => {
             return;
         }
         
+        // Formatear fechas para los inputs
+        if (datosCaja.bebe && datosCaja.bebe.fecha_nacimiento) {
+            datosCaja.bebe.fecha_nacimiento = formatearFechaParaInput(datosCaja.bebe.fecha_nacimiento);
+        }
+        
+        if (datosCaja.caja && datosCaja.caja.fecha_entrega) {
+            datosCaja.caja.fecha_entrega = formatearFechaParaInput(datosCaja.caja.fecha_entrega);
+        }
+        
         if (cajaWindow === null || cajaWindow === undefined) {
             createCajaWindow();
             // Esperar a que la ventana esté lista para recibir datos
@@ -294,6 +351,15 @@ ipcMain.on('editar-evento', async (event, id) => {
             return;
         }
         
+        // Formatear fechas para los inputs
+        if (datosEvento.bebe && datosEvento.bebe.fecha_nacimiento) {
+            datosEvento.bebe.fecha_nacimiento = formatearFechaParaInput(datosEvento.bebe.fecha_nacimiento);
+        }
+        
+        if (datosEvento.evento && datosEvento.evento.fecha_evento) {
+            datosEvento.evento.fecha_evento = formatearFechaParaInput(datosEvento.evento.fecha_evento);
+        }
+        
         if (eventoWindow === null || eventoWindow === undefined) {
             createEventoWindow();
             // Esperar a que la ventana esté lista para recibir datos
@@ -313,7 +379,9 @@ ipcMain.on('editar-evento', async (event, id) => {
 
 ipcMain.on('actualizar-caja', async (event, datos) => {
     try {
-        const resultado = await database.actualizarCaja(datos);
+        // Procesar fechas antes de enviar a la base de datos
+        const datosConFechasProcesadas = procesarFechasParaBaseDatos(datos);
+        const resultado = await database.actualizarCaja(datosConFechasProcesadas);
         event.reply('caja-actualizada', resultado);
     } catch (error) {
         event.reply('caja-actualizada', { success: false, message: error.message });
@@ -322,7 +390,9 @@ ipcMain.on('actualizar-caja', async (event, datos) => {
 
 ipcMain.on('actualizar-evento', async (event, datos) => {
     try {
-        const resultado = await database.actualizarEvento(datos);
+        // Procesar fechas antes de enviar a la base de datos
+        const datosConFechasProcesadas = procesarFechasParaBaseDatos(datos);
+        const resultado = await database.actualizarEvento(datosConFechasProcesadas);
         event.reply('evento-actualizado', resultado);
     } catch (error) {
         event.reply('evento-actualizado', { exito: false, mensaje: error.message });
